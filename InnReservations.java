@@ -141,6 +141,8 @@ public class InnReservations {
       boolean exit = false;
       Scanner input = new Scanner(System.in);
 
+      System.out.println("Welcome, Admin.\n");
+
       while (!exit) {
          displayAdmin();
 
@@ -150,11 +152,16 @@ public class InnReservations {
 
 
          switch(option) {
-            case 'v':   System.out.println("displayTable\n");
+            case 'v':
+                        if (tokens.length > 1)
+                            displayTable(tokens[1], currentStatus());
+                        else
+                            System.out.println("Usage: v <table>\n");
                         break;
-            case 'c':   System.out.println("clearDB\n");
+            case 'c':   System.out.println("\nClearing database...\n");
+                        clearDb();
                         break;
-            case 'l':   System.out.println("loadDB\n");
+            case 'l':   loadDB();
                         break;
             case 'r':   System.out.println("removeDB\n");
                         break;
@@ -256,10 +263,10 @@ public class InnReservations {
 
       // Display UI
       // add your own information for the state of the database
-      System.out.println("Welcome, Admin.\n\n"
-         + "Current Status: " + "<put in state informnation>" + "\n"
-         + "Reservations: " + "<put in count of reservations>" + "\n"
-         + "Rooms: " + "<put in room information>" + "\n\n"
+      Status status = currentStatus();
+      System.out.println("Current Status: " + status.status + "\n"
+         + "Reservations: " + status.resCount + "\n"
+         + "Rooms: " + status.roomCount + "\n\n"
          + "Choose an option:\n"
          + "- (V)iew [table name] - Displays table contents\n"
          + "- (C)lear - Deletes all table contents\n"
@@ -503,4 +510,211 @@ public class InnReservations {
       return !f;
    }
 
+   // Status Results
+   private static class Status {
+       String status;
+       int resCount, roomCount;
+
+       public Status(String s, int c1, int c2) {
+           this.status = s;
+           this.roomCount = c1;
+           this.resCount = c2;
+       }
+   }
+
+   // DB Methods
+   private static Status currentStatus() {
+       try {
+           int roomCount, resCount;
+           int dbStatus = 0;
+
+           DatabaseMetaData dbm = conn.getMetaData();
+            // check if "ProjectA_rooms" table is there and get its count
+            ResultSet tables = dbm.getTables(null, null, "ProjectA_rooms", null);
+            if (tables.next()) {
+                // Table exists
+                dbStatus++;
+                String getCount = "SELECT * FROM ProjectA_rooms;";
+                Statement s1 = conn.createStatement();
+                ResultSet rs = s1.executeQuery(getCount);
+                // get row count
+                roomCount = rs.last() ? rs.getRow() : 0;
+            }
+            else {
+                // Table does not exist
+                roomCount = 0;
+            }
+            // reservation count
+            tables = dbm.getTables(null, null, "ProjectA_reservations", null);
+            if (tables.next()) {
+                // Table exists
+                dbStatus++;
+                String getCount = "SELECT * FROM ProjectA_reservations;";
+                Statement s1 = conn.createStatement();
+                ResultSet rs = s1.executeQuery(getCount);
+                // get row count
+                resCount = rs.last() ? rs.getRow() : 0;
+            }
+            else {
+                resCount = 0;
+            }
+            if (dbStatus == 0) {
+                return new Status("no database", 0, 0);
+            }
+            else if (resCount == 0 && roomCount == 0) {
+                return new Status("empty", 0, 0);
+            }
+            else {
+                return new Status("full", roomCount, resCount);
+            }
+       }
+       catch (Exception ee) {
+          System.out.println("ee96: " + ee);
+          return new Status("Error", 0, 0);
+       }
+
+   }
+
+   private static void displayTable(String table, Status status) {
+       String query;
+       Statement stmt = null;
+       if (table.equals("reservations")) {
+           if (status.resCount == 0) {
+               System.out.println("\nEmpty set.\n");
+               return;
+           }
+           // System.out.println("Displaying reservations...");
+           query = "SELECT * FROM ProjectA_reservations";
+           try {
+               stmt = conn.createStatement();
+               ResultSet rs = stmt.executeQuery(query);
+               System.out.println("\nCode" + "\t" + "Room" + "\t" + "checkIn" +
+                    "\t\t" + "checkOut" + "\t" + "Rate" + "\t" + "lastName" +
+                    "\t" + "firstName" + "\t" + "Adults" + "\t" + "Kids");
+               while (rs.next()) {
+                   int code = rs.getInt("Code");
+                   String room = rs.getString("room");
+                   java.sql.Date checkIn = rs.getDate("checkIn");
+                   java.sql.Date checkOut = rs.getDate("checkOut");
+                   int rate = rs.getInt("rate");
+                   String lastName = rs.getString("lastName");
+                   String firstName = rs.getString("firstName");
+                   int adults = rs.getInt("adults");
+                   int kids = rs.getInt("kids");
+
+                   System.out.print(code + "\t" + room +
+                                      "\t" + checkIn + "\t" + checkOut +
+                                      "\t" + rate + "\t");
+                    System.out.printf("%-15s %-15s", lastName, firstName);
+                    System.out.println("\t" + adults + "\t" + kids);
+               }
+               System.out.println();
+               if (stmt != null) rs.close();
+           } catch (SQLException e) {
+               System.out.println("Error" + e);
+           }
+       }
+        else if (table.equals("rooms")) {
+            // System.out.println("Displaying rooms...");
+            if (status.roomCount == 0) {
+                System.out.println("\nEmpty set.\n");
+                return;
+            }
+            query = "SELECT * FROM ProjectA_rooms";
+            try {
+                stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(query);
+                System.out.println("\nRoomId" + "\t" + "RoomName" + "\t\t\t" +
+                    "Beds" + "\t" + "BedType" + "\t" + "MaxOcc" + "\t" +
+                    "BasePrice" + "\t" + "Decor");
+                while (rs.next()) {
+                    String roomId = rs.getString("RoomId");
+                    String roomName = rs.getString("RoomName");
+                    int beds = rs.getInt("Beds");
+                    String bedType = rs.getString("BedType");
+                    int maxOcc = rs.getInt("MaxOcc");
+                    int basePrice = rs.getInt("BasePrice");
+                    String decor = rs.getString("Decor");
+
+                    System.out.print(roomId + "\t");
+                    System.out.printf("%-30s", roomName);
+                    System.out.println("\t" + beds + "\t" + bedType +
+                                       "\t" + maxOcc + "\t" + basePrice +
+                                       "\t\t" + decor);
+                }
+                System.out.println();
+                if (stmt != null) rs.close();
+            } catch (SQLException e) {
+                System.out.println("Error" + e);
+            }
+        }
+        else
+            System.out.println("Incorrect table name");
+
+   }
+
+   private static void clearDb() {
+       try {
+          Statement s1 = conn.createStatement();
+          s1.executeUpdate("DROP TABLE ProjectA_rooms");
+          Statement s2 = conn.createStatement();
+          s2.executeUpdate("DROP TABLE ProjectA_reservations");
+          s1.close();
+          s2.close();
+       }
+       catch (Exception ee) {
+          System.out.println("Error: " + ee);
+       }
+   }
+
+   private static void loadDB() {
+       Status status = currentStatus();
+       if (status.status.equals("full")) {
+           System.out.println("\nDatabase is already populated.\n");
+       }
+       else if (status.status.equals("empty")) {
+           System.out.println("\nPopulating database.\n");
+           populateDB();
+       }
+       else {
+           System.out.println("\nInitializing and populating database.\n");
+           createDB();
+           populateDB();
+       }
+   }
+
+   private static void populateDB() {
+       try {
+           Statement s1 = conn.createStatement();
+           s1.executeUpdate("INSERT INTO ProjectA_rooms SELECT * FROM INN.rooms;");
+           s1.close();
+           Statement s2 = conn.createStatement();
+           s2.executeUpdate("INSERT INTO ProjectA_reservations SELECT * FROM INN.reservations");
+           s2.close();
+       } catch (Exception e) {
+           System.out.println("Error populating db: " + e);
+       }
+   }
+
+   private static void createDB() {
+       // Create tables
+       // now we're going to create a table and populate it
+       // for rooms
+       try {
+          String table = "CREATE TABLE IF NOT EXISTS ProjectA_rooms LIKE INN.rooms;";
+          Statement s1 = conn.createStatement();
+          s1.executeUpdate(table);
+          s1.close();
+
+       // now we're going to create a table and populate it
+       // for reservations
+          String table2 = "CREATE TABLE IF NOT EXISTS ProjectA_reservations LIKE INN.reservations;";
+          Statement s2 = conn.createStatement();
+          s2.executeUpdate(table2);
+          s2.close();
+       }
+       catch (Exception ee) {
+          System.out.println("Error creating tables: " + ee);
+       }
+   }
 }
