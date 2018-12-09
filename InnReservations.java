@@ -13,11 +13,87 @@ import java.math.*;
 // main function. Contains main program loop
 public class InnReservations {
 
+   private static Connection conn = null;
 
    // enter main program loop
    public static void main(String args[]) {
 
    // eeb: you may want to put various set-up functionality here
+
+   //CHRIS ADDED HERE: START
+   try {
+      Class.forName("com.mysql.jdbc.Driver").newInstance();
+      System.out.println ("Driver class found and loaded.");
+   }
+   catch (Exception ex) {
+      System.out.println("Driver not found");
+      System.out.println(ex);
+   };
+   Scanner scan = null;
+   File f =
+      new File("ServerSettings.txt");
+   try {
+      scan = new Scanner(f);
+   } catch(Exception e){
+      System.out.println("ERROR: ServerSettings.txt doesn't exist");
+   }
+
+   // Now make the mySQL connection
+   try{
+      conn = DriverManager.getConnection(
+        scan.nextLine() ,
+        scan.nextLine(), scan.nextLine() );
+   }
+   catch (Exception ex) {
+      System.out.println("Could not open connection");
+      System.out.println(ex);
+   };
+   System.out.println("\nConnected to mySQL\n");
+
+   // Create tables
+   // now we're going to create a table and populate it
+   // for rooms
+   try {
+      String table = "CREATE TABLE IF NOT EXISTS ProjectA_rooms LIKE INN.rooms;";
+      System.out.println("The CREATE TABLE statement:\n" + table + "\n");
+
+      Statement s1 = conn.createStatement();
+      System.out.println("createStatement ok");
+
+      // the next statement executes our CREATE TABLE statement
+      s1.executeUpdate(table);
+
+   }
+   catch (Exception ee) {
+      System.out.println("ee96: " + ee);
+   }
+
+   // now we're going to create a table and populate it
+   // for reservations
+   try {
+      String table = "CREATE TABLE IF NOT EXISTS ProjectA_reservations LIKE INN.reservations;";
+      System.out.println("The CREATE TABLE statement:\n" + table + "\n");
+
+      Statement s1 = conn.createStatement();
+      System.out.println("createStatement ok");
+
+      // the next statement executes our CREATE TABLE statement
+      s1.executeUpdate(table);
+
+   }
+   catch (Exception ee) {
+      System.out.println("ee96: " + ee);
+   }
+
+   System.out.println();
+
+   boolean roomsEmpty = checkRoomsEmpty();
+   System.out.println("ProjectA_rooms is empty: " + roomsEmpty);
+
+   boolean resEmpty = checkReservationsEmpty();
+   System.out.println("ProjectA_reservations is empty: " + resEmpty);
+
+   //CHRIS ADDED HERE: END
 
    boolean exit = false;
    Scanner input = new Scanner(System.in);
@@ -398,6 +474,33 @@ public class InnReservations {
       String dsName = input.nextLine().toUpperCase();
 
       return dsName;
+   }
+
+   //CHRIS' METHODS
+   private static boolean checkRoomsEmpty(){
+      boolean f = true;
+      try {
+         Statement s = conn.createStatement();
+         ResultSet result = s.executeQuery("SELECT * FROM ProjectA_rooms");
+         f = result.next();
+      }
+      catch (Exception ee) {
+         System.out.println("ee129: " + ee);
+      }
+      return !f;
+   }
+
+   private static boolean checkReservationsEmpty(){
+      boolean f = true;
+      try {
+         Statement s = conn.createStatement();
+         ResultSet result = s.executeQuery("SELECT * FROM ProjectA_reservations");
+         f = result.next();
+      }
+      catch (Exception ee) {
+         System.out.println("ee129: " + ee);
+      }
+      return !f;
    }
 
 }
