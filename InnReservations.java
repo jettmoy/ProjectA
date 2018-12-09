@@ -190,18 +190,1018 @@ public class InnReservations {
 
          switch(option) {
             case 'o':   System.out.println("occupancyMenu\n");
+                        occupancyMenuLoop();
                         break;
             case 'd':   System.out.println("revenueData\n");
+                        revenueMenuLoop();
                         break;
             case 's':   System.out.println("browseRes()\n");
+                        reservationMenuLoop();
                         break;
             case 'r':   System.out.println("viewRooms\n");
+                        roomMenuLoop();
                         break;
             case 'b':   exit = true;
                         break;
          }
       }
    }
+
+   // CHRIS MAKING METHODS FOR OWNER LOOP: START
+   // OR-1: START
+   // Logic for menu when (O)wner -> (O)ccupancy is selected
+   private static void occupancyMenuLoop(){
+      boolean exit = false;
+      Scanner input = new Scanner(System.in);
+
+      while (!exit) {
+         displayOccupancyMenu();
+
+         String[] tokens = input.nextLine().toLowerCase().split(" ");
+
+         char option = tokens[0].charAt(0);
+         System.out.println("option chosen: " + option);
+
+
+         switch(option) {
+         case '1':   occupancy1();
+                     break;
+         case '2':   occupancy2();
+                     break;
+         case 'b':   exit = true;
+                     break;
+         }
+      }
+   }
+
+   // Owner occupancy UI display
+   private static void displayOccupancyMenu() {
+
+      // Display UI
+      System.out.println("Occupancy Menu.\n\n"
+         + "Choose an option:\n"
+         + "- (1) date (MM-DD)\n"
+         + "- (2) dates (MM-DD:MM-DD)\n"
+         + "- (B)ack - Goes back to main menu\n");
+   }
+
+
+   // 1 date option select
+   private static void occupancy1(){
+      Scanner input = new Scanner(System.in);
+
+      System.out.println("Enter 1 Date:\n");
+      String[] tokens = input.nextLine().toLowerCase().split("-");
+
+      // Checking if date is entered properly
+      if(tokens.length != 2 || tokens[0].length() != 2 || tokens[1].length() != 2){
+         System.out.println("Improper date format... Returning to Owner menu");
+         return;
+      }
+      try{
+         Integer.parseInt(tokens[0]);
+         Integer.parseInt(tokens[1]);
+      }
+      catch(NumberFormatException nfe){
+         System.out.println("Improper date units... Returning to Owner menu");
+         return;
+      }
+
+      // Making mysql query to display room OccupationStatus
+      try {
+         Statement s = conn.createStatement();
+         ResultSet result = s.executeQuery("SELECT rm.RoomName, rm.RoomId, "
+         + "IF(SUM(IF(CheckIn <= '2010-" + tokens[0] + "-" + tokens[1]
+         + "' AND CheckOut > '2010-" + tokens[0] + "-" + tokens[1]
+         + "', 1, 0)) =1, 'Occupied', 'Empty') AS OccupationStatus "
+         + "FROM ProjectA_rooms rm "
+         + "INNER JOIN ProjectA_reservations res "
+         + "ON rm.RoomId = res.Room "
+         + "GROUP BY rm.RoomName, rm.RoomId "
+         + "ORDER BY rm.RoomId;");
+         System.out.println("Room availability:");
+         boolean f = result.next();
+         while (f) {
+            String str1 = result.getString(1);
+            String str2 = result.getString(2);
+            String str3 = result.getString(3);
+            System.out.println(str1 + ", " + str2 + ", " + str3);
+            f=result.next();
+         }
+      }
+      catch (Exception ee) {
+         System.out.println("ee129: " + ee);
+      }
+
+      System.out.println("Select a room code to view reservation conflicts:\n");
+      String[] roomChoice = input.nextLine().toLowerCase().split(" ");
+
+      String option = roomChoice[0].substring(0, 3);
+      System.out.println("option chosen: " + option);
+
+      try {
+         Statement s = conn.createStatement();
+         ResultSet result = s.executeQuery("SELECT * "
+         + "FROM ProjectA_reservations res "
+         + "WHERE res.ROOM = '" + option + "' AND CheckIn <= '2010-" + tokens[0] + "-" + tokens[1]
+         + "' AND CheckOut > '2010-" + tokens[0] + "-" + tokens[1]
+         + "';");
+         System.out.println("Conflicting Reservation:\n");
+         boolean f = result.next();
+         while (f) {
+            String str1 = result.getString(1);
+            String str2 = result.getString(2);
+            String str3 = result.getString(3);
+            String str4 = result.getString(4);
+            String str5 = result.getString(5);
+            String str6 = result.getString(6);
+            String str7 = result.getString(7);
+            String str8 = result.getString(8);
+            String str9 = result.getString(9);
+            System.out.println(str1 + ", " + str2 + ", " + str3 + ", " + str4
+            + ", " + str5 + ", " + str6 + ", " + str7 + ", " + str8 + ", " + str9);
+            f=result.next();
+         }
+      }
+      catch (Exception ee) {
+         System.out.println("ee129: " + ee);
+      }
+
+   }
+
+   // 2 date option select
+   private static void occupancy2(){
+      Scanner input = new Scanner(System.in);
+
+      System.out.println("Enter 2 Dates:\n");
+      String[] tokens = input.nextLine().toLowerCase().split(":");
+
+      // Check if proper amount of dates entered
+      if(tokens.length !=2){
+         System.out.println("Improper amount of dates... Returning to Owner menu");
+         return;
+      }
+
+      String[] date1 = tokens[0].split("-");
+      String[] date2 = tokens[1].split("-");
+
+      // Checking if dates are entered properly
+      if(date1.length != 2 || date1[0].length() != 2 || date1[1].length() != 2){
+         System.out.println("Improper date format... Returning to Owner menu");
+         return;
+      }
+      if(date2.length != 2 || date2[0].length() != 2 || date2[1].length() != 2){
+         System.out.println("Improper date format... Returning to Owner menu");
+         return;
+      }
+
+      try{
+         Integer.parseInt(date1[0]);
+         Integer.parseInt(date1[1]);
+         Integer.parseInt(date2[0]);
+         Integer.parseInt(date2[1]);
+      }
+      catch(NumberFormatException nfe){
+         System.out.println("Improper date units... Returning to Owner menu");
+         return;
+      }
+
+      // Making mysql query to show OccupationStatus
+      try {
+         Statement s = conn.createStatement();
+
+         // I don't think this covers situation when room is fully occupied by 2 separate parties
+         ResultSet result = s.executeQuery("SELECT rm.RoomName, rm.RoomId, "
+         + "IF(SUM(CASE "
+         + "WHEN (CheckIn <= '2010-" + tokens[0] + "') AND (CheckOut > '2010-" + tokens[1] + "') THEN 1 "
+         + "WHEN (CheckIn <= '2010-" + tokens[0] + "' AND CheckOut <= '2010-" + tokens[1] + "' AND CheckOut > '2010-" + tokens[0]
+         + "') OR (CheckIn > '2010-" + tokens[0] + "' AND CheckIn < '2010-" + tokens[1] + "' AND CheckOut > '2010-" + tokens[1]
+         + "') OR (CheckIn >= '2010-" + tokens[0] + "' AND CheckOut <= '2010-" + tokens[1] + "') THEN 0.01 "
+         + "ELSE 0 "
+         + "END) = 0, 'Empty', IF(SUM(CASE "
+         + "WHEN (CheckIn <= '2010-" + tokens[0] + "') AND (CheckOut > '2010-" + tokens[1] + "') THEN 1 "
+         + "WHEN (CheckIn <= '2010-" + tokens[0] + "' AND CheckOut <= '2010-" + tokens[1] + "' AND CheckOut > '2010-" + tokens[0]
+         + "') OR (CheckIn > '2010-" + tokens[0] + "' AND CheckIn < '2010-" + tokens[1] + "' AND CheckOut > '2010-" + tokens[1]
+         + "') OR (CheckIn >= '2010-" + tokens[0] + "' AND CheckOut <= '2010-" + tokens[1] + "') THEN 0.01 "
+         + "ELSE 0 "
+         + "END) = 1, 'Fully Occupied', 'Partially Occupied') ) AS OccupationStatus "
+         + "FROM ProjectA_rooms rm "
+         + "INNER JOIN ProjectA_reservations res "
+         + "ON rm.RoomId = res.Room "
+         + "GROUP BY rm.RoomName, rm.RoomId "
+         + "ORDER BY rm.RoomId;");
+         System.out.println("Room availability:");
+         boolean f = result.next();
+         while (f) {
+            String str1 = result.getString(1);
+            String str2 = result.getString(2);
+            String str3 = result.getString(3);
+            System.out.println(str1 + ", " + str2 + ", " + str3);
+            f=result.next();
+         }
+      }
+      catch (Exception ee) {
+         System.out.println("ee129: " + ee);
+      }
+
+      // Making mysql query to reservation conflicts
+      System.out.println("Select a room code to view reservation conflicts:\n");
+      String[] roomChoice = input.nextLine().toLowerCase().split(" ");
+
+      String option = roomChoice[0].substring(0, 3);
+      System.out.println("option chosen: " + option);
+
+      try {
+         Statement s = conn.createStatement();
+         ResultSet result = s.executeQuery("SELECT Code, Room, CheckIn, CheckOut "
+         + "FROM ProjectA_reservations res "
+         + "WHERE res.ROOM = '" + option + "' AND ((CheckIn <= '2010-" + tokens[0] + "' AND CheckOut > '2010-" + tokens[1]
+         + "') OR ((CheckIn <= '2010-" + tokens[0] + "' AND CheckOut <= '2010-" + tokens[1] + "' AND CheckOut > '2010-" + tokens[0]
+         + "') OR (CheckIn > '2010-" + tokens[0] + "' AND CheckIn < '2010-" + tokens[1] + "' AND CheckOut > '2010-" + tokens[1]
+         + "') OR (CheckIn >= '2010-" + tokens[0] + "' AND CheckOut <= '2010-" + tokens[1] + "')))"
+         + ";");
+         System.out.println("Conflicting Reservations:\n");
+         boolean f = result.next();
+         while (f) {
+            String str1 = result.getString(1);
+            String str2 = result.getString(2);
+            String str3 = result.getString(3);
+            String str4 = result.getString(4);
+            System.out.println(str1 + ", " + str2 + ", " + str3 + ", " + str4);
+            f=result.next();
+         }
+      }
+      catch (Exception ee) {
+         System.out.println("ee129: " + ee);
+      }
+
+      // mysql query to show all info for reservation
+      System.out.println("\nSelect a reservation number to view full reservation:\n");
+      String[] resChoice = input.nextLine().toLowerCase().split(" ");
+
+      option = resChoice[0];
+      System.out.println("option chosen: " + option);
+
+      try{
+         Integer.parseInt(option);
+      }
+      catch(NumberFormatException nfe){
+         System.out.println("Not a number... Returning");
+         return;
+      }
+
+      try {
+         Statement s = conn.createStatement();
+         ResultSet result = s.executeQuery("SELECT * "
+         + "FROM ProjectA_reservations "
+         + "WHERE Code = " + option + ";");
+         System.out.println("Full Conflicting Reservation:\n");
+         boolean f = result.next();
+         while (f) {
+            String str1 = result.getString(1);
+            String str2 = result.getString(2);
+            String str3 = result.getString(3);
+            String str4 = result.getString(4);
+            String str5 = result.getString(5);
+            String str6 = result.getString(6);
+            String str7 = result.getString(7);
+            String str8 = result.getString(8);
+            String str9 = result.getString(9);
+            System.out.println(str1 + ", " + str2 + ", " + str3 + ", " + str4
+            + ", " + str5 + ", " + str6 + ", " + str7 + ", " + str8 + ", " + str9);
+            f=result.next();
+         }
+      }
+      catch (Exception ee) {
+         System.out.println("ee129: " + ee);
+      }
+
+   }
+
+   // OR-1: END
+
+   // OR-2: START
+
+   // Logic for menu when (O)wner -> (D)ata is selected
+   private static void revenueMenuLoop(){
+      boolean exit = false;
+      Scanner input = new Scanner(System.in);
+
+      while (!exit) {
+         displayRevenueMenu();
+
+         String[] tokens = input.nextLine().toLowerCase().split(" ");
+
+         char option = tokens[0].charAt(0);
+         System.out.println("option chosen: " + option);
+
+
+         switch(option) {
+         case 'c':   revReservations();
+                     break;
+         case 'd':   revDays();
+                     break;
+         case 'r':   revRevenue();
+                     break;
+         case 'b':   exit = true;
+                     break;
+         }
+      }
+   }
+
+   // Revenue UI display
+   private static void displayRevenueMenu() {
+
+      // Display UI
+      System.out.println("Data Menu.\n\n"
+         + "Choose an option:\n"
+         + "- (C)ounts,\n"
+         + "- (D)ays,\n"
+         + "- (R)evenue,\n"
+         + "- (B)ack - Goes back to main menu\n");
+   }
+
+   // Dispay number of Reservations by month
+   private static void revReservations() {
+
+      // Making mysql query to display Dispay number of Reservations by month
+      try {
+         Statement s = conn.createStatement();
+         ResultSet result = s.executeQuery("SELECT rm.RoomName, SUM(IF(MONTH(CheckOut) = 1, 1, 0)) AS january, "
+         + "SUM(IF(MONTH(CheckOut) = 2, 1, 0)) AS february, "
+         + "SUM(IF(MONTH(CheckOut) = 3, 1, 0)) AS march, "
+         + "SUM(IF(MONTH(CheckOut) = 4, 1, 0)) AS april, "
+         + "SUM(IF(MONTH(CheckOut) = 5, 1, 0)) AS may, "
+         + "SUM(IF(MONTH(CheckOut) = 6, 1, 0)) AS june, "
+         + "SUM(IF(MONTH(CheckOut) = 7, 1, 0)) AS july, "
+         + "SUM(IF(MONTH(CheckOut) = 8, 1, 0)) AS august, "
+         + "SUM(IF(MONTH(CheckOut) = 9, 1, 0)) AS september, "
+         + "SUM(IF(MONTH(CheckOut) = 10, 1, 0)) AS october, "
+         + "SUM(IF(MONTH(CheckOut) = 11, 1, 0)) AS november, "
+         + "SUM(IF(MONTH(CheckOut) = 12, 1, 0)) AS december, "
+         + "COUNT(*) AS total "
+         + "FROM ProjectA_rooms rm "
+         + "INNER JOIN ProjectA_reservations res "
+         + "ON rm.RoomId = res.Room "
+         + "GROUP BY rm.RoomName;");
+         boolean f = result.next();
+         while (f) {
+            String str1 = result.getString(1);
+            String str2 = result.getString(2);
+            String str3 = result.getString(3);
+            String str4 = result.getString(4);
+            String str5 = result.getString(5);
+            String str6 = result.getString(6);
+            String str7 = result.getString(7);
+            String str8 = result.getString(8);
+            String str9 = result.getString(9);
+            String str10 = result.getString(10);
+            String str11 = result.getString(11);
+            String str12 = result.getString(12);
+            String str13 = result.getString(13);
+            String str14 = result.getString(14);
+            System.out.println(str1 + ", " + str2 + ", " + str3 + ", " + str4
+            + ", " + str5 + ", " + str6 + ", " + str7 + ", " + str8 + ", " + str9 + ", "
+            + str10 + ", " + str11 + ", " + str12 + ", " + str13 + ", " + str14);
+            f=result.next();
+         }
+      }
+      catch (Exception ee) {
+         System.out.println("ee129: " + ee);
+      }
+   }
+
+   private static void revDays() {
+      try {
+         Statement s = conn.createStatement();
+         ResultSet result = s.executeQuery("SELECT rm.RoomName, SUM(IF(MONTH(CheckOut) = 1, DATEDIFF(CheckOut, CheckIn), 0)) AS january, "
+         + "SUM(IF(MONTH(CheckOut) = 2, DATEDIFF(CheckOut, CheckIn), 0)) AS february, "
+         + "SUM(IF(MONTH(CheckOut) = 3, DATEDIFF(CheckOut, CheckIn), 0)) AS march, "
+         + "SUM(IF(MONTH(CheckOut) = 4, DATEDIFF(CheckOut, CheckIn), 0)) AS april, "
+         + "SUM(IF(MONTH(CheckOut) = 5, DATEDIFF(CheckOut, CheckIn), 0)) AS may, "
+         + "SUM(IF(MONTH(CheckOut) = 6, DATEDIFF(CheckOut, CheckIn), 0)) AS june, "
+         + "SUM(IF(MONTH(CheckOut) = 7, DATEDIFF(CheckOut, CheckIn), 0)) AS july, "
+         + "SUM(IF(MONTH(CheckOut) = 8, DATEDIFF(CheckOut, CheckIn), 0)) AS august, "
+         + "SUM(IF(MONTH(CheckOut) = 9, DATEDIFF(CheckOut, CheckIn), 0)) AS september, "
+         + "SUM(IF(MONTH(CheckOut) = 10, DATEDIFF(CheckOut, CheckIn), 0)) AS october, "
+         + "SUM(IF(MONTH(CheckOut) = 11, DATEDIFF(CheckOut, CheckIn), 0)) AS november, "
+         + "SUM(IF(MONTH(CheckOut) = 12, DATEDIFF(CheckOut, CheckIn), 0)) AS december, "
+         + "SUM(DATEDIFF(CheckOut, CheckIn)) AS total "
+         + "FROM ProjectA_rooms rm "
+         + "INNER JOIN ProjectA_reservations res "
+         + "ON rm.RoomId = res.Room "
+         + "GROUP BY rm.RoomName;");
+         boolean f = result.next();
+         while (f) {
+               String str1 = result.getString(1);
+               String str2 = result.getString(2);
+               String str3 = result.getString(3);
+               String str4 = result.getString(4);
+               String str5 = result.getString(5);
+               String str6 = result.getString(6);
+               String str7 = result.getString(7);
+               String str8 = result.getString(8);
+               String str9 = result.getString(9);
+               String str10 = result.getString(10);
+               String str11 = result.getString(11);
+               String str12 = result.getString(12);
+               String str13 = result.getString(13);
+               String str14 = result.getString(14);
+               System.out.println(str1 + ", " + str2 + ", " + str3 + ", " + str4
+               + ", " + str5 + ", " + str6 + ", " + str7 + ", " + str8 + ", " + str9 + ", "
+               + str10 + ", " + str11 + ", " + str12 + ", " + str13 + ", " + str14);
+               f=result.next();
+            }
+      }
+      catch (Exception ee) {
+         System.out.println("ee129: " + ee);
+      }
+   }
+
+   private static void revRevenue() {
+      try {
+         Statement s = conn.createStatement();
+         ResultSet result = s.executeQuery("SELECT rm.RoomName, SUM(IF(MONTH(CheckOut) = 1, DATEDIFF(CheckOut, CheckIn) * res.rate, 0)) AS january, "
+         + "SUM(IF(MONTH(CheckOut) = 2, DATEDIFF(CheckOut, CheckIn) * res.rate, 0)) AS february, "
+         + "SUM(IF(MONTH(CheckOut) = 3, DATEDIFF(CheckOut, CheckIn) * res.rate, 0)) AS march, "
+         + "SUM(IF(MONTH(CheckOut) = 4, DATEDIFF(CheckOut, CheckIn) * res.rate, 0)) AS april, "
+         + "SUM(IF(MONTH(CheckOut) = 5, DATEDIFF(CheckOut, CheckIn) * res.rate, 0)) AS may, "
+         + "SUM(IF(MONTH(CheckOut) = 6, DATEDIFF(CheckOut, CheckIn) * res.rate, 0)) AS june, "
+         + "SUM(IF(MONTH(CheckOut) = 7, DATEDIFF(CheckOut, CheckIn) * res.rate, 0)) AS july, "
+         + "SUM(IF(MONTH(CheckOut) = 8, DATEDIFF(CheckOut, CheckIn) * res.rate, 0)) AS august, "
+         + "SUM(IF(MONTH(CheckOut) = 9, DATEDIFF(CheckOut, CheckIn) * res.rate, 0)) AS september, "
+         + "SUM(IF(MONTH(CheckOut) = 10, DATEDIFF(CheckOut, CheckIn) * res.rate, 0)) AS october, "
+         + "SUM(IF(MONTH(CheckOut) = 11, DATEDIFF(CheckOut, CheckIn) * res.rate, 0)) AS november, "
+         + "SUM(IF(MONTH(CheckOut) = 12, DATEDIFF(CheckOut, CheckIn) * res.rate, 0)) AS december, "
+         + "SUM(DATEDIFF(CheckOut, CheckIn) * res.rate) AS total "
+         + "FROM ProjectA_rooms rm "
+         + "INNER JOIN ProjectA_reservations res "
+         + "ON rm.RoomId = res.Room "
+         + "GROUP BY rm.RoomName;");
+         boolean f = result.next();
+         while (f) {
+               String str1 = result.getString(1);
+               String str2 = result.getString(2);
+               String str3 = result.getString(3);
+               String str4 = result.getString(4);
+               String str5 = result.getString(5);
+               String str6 = result.getString(6);
+               String str7 = result.getString(7);
+               String str8 = result.getString(8);
+               String str9 = result.getString(9);
+               String str10 = result.getString(10);
+               String str11 = result.getString(11);
+               String str12 = result.getString(12);
+               String str13 = result.getString(13);
+               String str14 = result.getString(14);
+               System.out.println(str1 + ", " + str2 + ", " + str3 + ", " + str4
+               + ", " + str5 + ", " + str6 + ", " + str7 + ", " + str8 + ", " + str9 + ", "
+               + str10 + ", " + str11 + ", " + str12 + ", " + str13 + ", " + str14);
+               f=result.next();
+            }
+      }
+      catch (Exception ee) {
+         System.out.println("ee129: " + ee);
+      }
+   }
+
+   // OR-2: END
+
+   // OR-3: START
+   // Logic for menu when (O)wner -> (S)tays is selected
+   private static void reservationMenuLoop(){
+      boolean exit = false;
+      Scanner input = new Scanner(System.in);
+
+      while (!exit) {
+         displayReservationMenu();
+
+         String[] tokens = input.nextLine().toLowerCase().split(" ");
+         String[] datesOrRoom = tokens[0].split(":");
+
+         int option = tokens.length;
+
+         if(tokens[0].toLowerCase().equals("b")){
+            return;
+         }
+
+         switch(option) {
+         case 1:   if(datesOrRoom.length == 2){
+                     resDates(datesOrRoom[0], datesOrRoom[1]);
+                  } else if(datesOrRoom.length == 1){
+                     resRoom(datesOrRoom[0]);
+                  } else {
+                     System.out.println("Wrong number of inputs");
+                  };
+                     break;
+         case 2:   resDatesAndRoom(datesOrRoom[0], datesOrRoom[1], tokens[1]);
+                     break;
+         case 'b':   exit = true;
+                     break;
+         }
+      }
+   }
+
+   // Reservation UI display
+   private static void displayReservationMenu() {
+
+      // Display UI
+      System.out.println("Data Menu.\n\n"
+         + "Enter range of dates (MM-DD:MM-DD) and/or room code:\n"
+         + "- (B)ack - Goes back to main menu\n");
+   }
+
+   private static void resDatesAndRoom(String date1, String date2, String room){
+      Scanner input = new Scanner(System.in);
+
+      String[] date1arr = date1.split("-");
+      String[] date2arr = date2.split("-");
+
+      // Checking if dates are entered properly
+      if(date1arr.length != 2 || date1arr[0].length() != 2 || date1arr[1].length() != 2){
+         System.out.println("Improper date format... Returning to Owner menu");
+         return;
+      }
+      if(date2arr.length != 2 || date2arr[0].length() != 2 || date2arr[1].length() != 2){
+         System.out.println("Improper date format... Returning to Owner menu");
+         return;
+      }
+      try{
+         Integer.parseInt(date1arr[0]);
+         Integer.parseInt(date1arr[1]);
+         Integer.parseInt(date2arr[0]);
+         Integer.parseInt(date2arr[1]);
+      }
+      catch(NumberFormatException nfe){
+         System.out.println("Improper date units... Returning to Owner menu");
+         return;
+      }
+
+      try {
+         Statement s = conn.createStatement();
+
+         ResultSet result = s.executeQuery("SELECT Code, Room, CheckIn, CheckOut "
+         + "FROM ProjectA_reservations res "
+         + "WHERE CheckIn >= '2010-" + date1 + "' AND CheckIn < '2010-" + date2 + "' AND Room = '" + room + "';");
+         System.out.println("Reservations based on search:\n");
+         boolean f = result.next();
+         while (f) {
+            String str1 = result.getString(1);
+            String str2 = result.getString(2);
+            String str3 = result.getString(3);
+            String str4 = result.getString(4);
+            System.out.println(str1 + ", " + str2 + ", " + str3 + ", " + str4);
+            f=result.next();
+         }
+      }
+      catch (Exception ee) {
+         System.out.println("ee129: " + ee);
+      }
+
+      // mysql query to show all info for reservation
+      System.out.println("\nSelect a reservation number to view full reservation:\n");
+      String[] resChoice = input.nextLine().toLowerCase().split(" ");
+
+      String option = resChoice[0];
+      System.out.println("option chosen: " + option);
+
+      try{
+         Integer.parseInt(option);
+      }
+      catch(NumberFormatException nfe){
+         System.out.println("Not a number... Returning");
+         return;
+      }
+
+      try {
+         Statement s = conn.createStatement();
+         ResultSet result = s.executeQuery("SELECT * "
+         + "FROM ProjectA_reservations "
+         + "WHERE Code = " + option + ";");
+         System.out.println("Full Conflicting Reservation:\n");
+         boolean f = result.next();
+         while (f) {
+            String str1 = result.getString(1);
+            String str2 = result.getString(2);
+            String str3 = result.getString(3);
+            String str4 = result.getString(4);
+            String str5 = result.getString(5);
+            String str6 = result.getString(6);
+            String str7 = result.getString(7);
+            String str8 = result.getString(8);
+            String str9 = result.getString(9);
+            System.out.println(str1 + ", " + str2 + ", " + str3 + ", " + str4
+            + ", " + str5 + ", " + str6 + ", " + str7 + ", " + str8 + ", " + str9);
+            f=result.next();
+         }
+      }
+      catch (Exception ee) {
+         System.out.println("ee129: " + ee);
+      }
+   }
+
+   private static void resRoom(String room){
+      Scanner input = new Scanner(System.in);
+
+      try {
+         Statement s = conn.createStatement();
+
+         ResultSet result = s.executeQuery("SELECT Code, Room, CheckIn, CheckOut "
+         + "FROM ProjectA_reservations res "
+         + "WHERE Room = '" + room + "';");
+         System.out.println("Reservations based on search:\n");
+         boolean f = result.next();
+         while (f) {
+            String str1 = result.getString(1);
+            String str2 = result.getString(2);
+            String str3 = result.getString(3);
+            String str4 = result.getString(4);
+            System.out.println(str1 + ", " + str2 + ", " + str3 + ", " + str4);
+            f=result.next();
+         }
+      }
+      catch (Exception ee) {
+         System.out.println("ee129: " + ee);
+      }
+
+      // mysql query to show all info for reservation
+      System.out.println("\nSelect a reservation number to view full reservation:\n");
+      String[] resChoice = input.nextLine().toLowerCase().split(" ");
+
+      String option = resChoice[0];
+      System.out.println("option chosen: " + option);
+
+      try{
+         Integer.parseInt(option);
+      }
+      catch(NumberFormatException nfe){
+         System.out.println("Not a number... Returning");
+         return;
+      }
+
+      try {
+         Statement s = conn.createStatement();
+         ResultSet result = s.executeQuery("SELECT * "
+         + "FROM ProjectA_reservations "
+         + "WHERE Code = " + option + ";");
+         System.out.println("Full Conflicting Reservation:\n");
+         boolean f = result.next();
+         while (f) {
+            String str1 = result.getString(1);
+            String str2 = result.getString(2);
+            String str3 = result.getString(3);
+            String str4 = result.getString(4);
+            String str5 = result.getString(5);
+            String str6 = result.getString(6);
+            String str7 = result.getString(7);
+            String str8 = result.getString(8);
+            String str9 = result.getString(9);
+            System.out.println(str1 + ", " + str2 + ", " + str3 + ", " + str4
+            + ", " + str5 + ", " + str6 + ", " + str7 + ", " + str8 + ", " + str9);
+            f=result.next();
+         }
+      }
+      catch (Exception ee) {
+         System.out.println("ee129: " + ee);
+      }
+   }
+
+   private static void resDates(String date1, String date2){
+      Scanner input = new Scanner(System.in);
+
+      String[] date1arr = date1.split("-");
+      String[] date2arr = date2.split("-");
+
+      // Checking if dates are entered properly
+      if(date1arr.length != 2 || date1arr[0].length() != 2 || date1arr[1].length() != 2){
+         System.out.println("Improper date format... Returning to Owner menu");
+         return;
+      }
+      if(date2arr.length != 2 || date2arr[0].length() != 2 || date2arr[1].length() != 2){
+         System.out.println("Improper date format... Returning to Owner menu");
+         return;
+      }
+      try{
+         Integer.parseInt(date1arr[0]);
+         Integer.parseInt(date1arr[1]);
+         Integer.parseInt(date2arr[0]);
+         Integer.parseInt(date2arr[1]);
+      }
+      catch(NumberFormatException nfe){
+         System.out.println("Improper date units... Returning to Owner menu");
+         return;
+      }
+
+      try {
+         Statement s = conn.createStatement();
+
+         ResultSet result = s.executeQuery("SELECT Code, Room, CheckIn, CheckOut "
+         + "FROM ProjectA_reservations res "
+         + "WHERE CheckIn >= '2010-" + date1 + "' AND CheckIn < '2010-" + date2 + "';");
+         System.out.println("Reservations based on search:\n");
+         boolean f = result.next();
+         while (f) {
+            String str1 = result.getString(1);
+            String str2 = result.getString(2);
+            String str3 = result.getString(3);
+            String str4 = result.getString(4);
+            System.out.println(str1 + ", " + str2 + ", " + str3 + ", " + str4);
+            f=result.next();
+         }
+      }
+      catch (Exception ee) {
+         System.out.println("ee129: " + ee);
+      }
+
+      // mysql query to show all info for reservation
+      System.out.println("\nSelect a reservation number to view full reservation:\n");
+      String[] resChoice = input.nextLine().toLowerCase().split(" ");
+
+      String option = resChoice[0];
+      System.out.println("option chosen: " + option);
+
+      try{
+         Integer.parseInt(option);
+      }
+      catch(NumberFormatException nfe){
+         System.out.println("Not a number... Returning");
+         return;
+      }
+
+      try {
+         Statement s = conn.createStatement();
+         ResultSet result = s.executeQuery("SELECT * "
+         + "FROM ProjectA_reservations "
+         + "WHERE Code = " + option + ";");
+         System.out.println("Full Conflicting Reservation:\n");
+         boolean f = result.next();
+         while (f) {
+            String str1 = result.getString(1);
+            String str2 = result.getString(2);
+            String str3 = result.getString(3);
+            String str4 = result.getString(4);
+            String str5 = result.getString(5);
+            String str6 = result.getString(6);
+            String str7 = result.getString(7);
+            String str8 = result.getString(8);
+            String str9 = result.getString(9);
+            System.out.println(str1 + ", " + str2 + ", " + str3 + ", " + str4
+            + ", " + str5 + ", " + str6 + ", " + str7 + ", " + str8 + ", " + str9);
+            f=result.next();
+         }
+      }
+      catch (Exception ee) {
+         System.out.println("ee129: " + ee);
+      }
+
+
+   }
+   // OR-3: END
+
+   // OR-4: START
+   // Logic for menu when (O)wner -> (R)ooms is selected
+   private static void roomMenuLoop(){
+      boolean exit = false;
+      Scanner input = new Scanner(System.in);
+
+      while (!exit) {
+         displayRoomMenu();
+
+         // display list of rooms
+         try {
+            Statement s = conn.createStatement();
+            ResultSet result = s.executeQuery("SELECT RoomId, RoomName "
+            + "FROM ProjectA_rooms;");
+            System.out.println("Room List:\n");
+            boolean f = result.next();
+            while (f) {
+               String str1 = result.getString(1);
+               String str2 = result.getString(2);
+               System.out.println(str1 + ", " + str2);
+               f=result.next();
+            }
+            System.out.println("\n");
+         }
+         catch (Exception ee) {
+            System.out.println("ee129: " + ee);
+         }
+
+         String[] tokens = input.nextLine().toLowerCase().split(" ");
+
+         char option = tokens[0].charAt(0);
+         System.out.println("option chosen: " + option);
+
+
+         switch(option) {
+         case '1':   roomRoom(tokens[1]);
+                     break;
+         case '2':   roomReservations(tokens[1]);
+                     break;
+         case 'b':   exit = true;
+                     break;
+         }
+      }
+   }
+
+   // Room UI display
+   private static void displayRoomMenu() {
+
+      // Display UI
+      System.out.println("Occupancy Menu.\n\n"
+         + "Choose an option (add desired room code after choice):\n"
+         + "- (1) Room Info\n"
+         + "- (2) Reservation Info\n"
+         + "- (B)ack - Goes back to main menu\n");
+   }
+
+   // Option 1 of displayOccupancyMenu
+   private static void roomRoom(String room){
+      Scanner input = new Scanner(System.in);
+
+      try {
+         Statement s = conn.createStatement();
+
+         ResultSet result = s.executeQuery("SELECT DISTINCT rm.RoomId, rm.RoomName, rm.Beds, rm.BedType, rm.MaxOcc, rm.BasePrice, rm.Decor "
+         + "FROM ProjectA_rooms rm "
+         + "INNER JOIN ProjectA_reservations res "
+         + "ON rm.RoomId = res.Room "
+         + "WHERE Room = '" + room + "';");
+         System.out.println("Room based on search:\n");
+         boolean f = result.next();
+         while (f) {
+            String str1 = result.getString(1);
+            String str2 = result.getString(2);
+            String str3 = result.getString(3);
+            String str4 = result.getString(4);
+            String str5 = result.getString(5);
+            String str6 = result.getString(6);
+            String str7 = result.getString(7);
+            System.out.println(str1 + ", " + str2 + ", " + str3 + ", " + str4 + ", " + str5 + ", " + str6 + ", " + str7);
+            f=result.next();
+         }
+      }
+      catch (Exception ee) {
+         System.out.println("ee129: " + ee);
+      }
+
+      // • total number of nights of occupancy for the room in 2010
+      try {
+         Statement s = conn.createStatement();
+
+         ResultSet result = s.executeQuery("SELECT SUM(IF(YEAR(CheckOut) = 2010, DATEDIFF(CheckOut, CheckIn), DATEDIFF('2010-12-31', CheckIn))) AS totalNights "
+         + "FROM ProjectA_rooms rm "
+         + "INNER JOIN ProjectA_reservations res "
+         + "ON rm.RoomId = res.Room "
+         + "WHERE Room = '" + room + "' AND YEAR(CheckIn) = 2010 "
+         + "GROUP BY rm.RoomName;");
+         boolean f = result.next();
+         while (f) {
+            String str1 = result.getString(1);
+            System.out.println(str1);
+            f=result.next();
+         }
+      }
+      catch (Exception ee) {
+         System.out.println("ee129: " + ee);
+      }
+
+      // percent of time the room is occupied
+      try {
+         Statement s = conn.createStatement();
+
+         ResultSet result = s.executeQuery("SELECT SUM(IF(YEAR(CheckOut) = 2010, DATEDIFF(CheckOut, CheckIn), DATEDIFF('2010-12-31', CheckIn))) * 100 / 365 AS totalNights "
+         + "FROM ProjectA_rooms rm "
+         + "INNER JOIN ProjectA_reservations res "
+         + "ON rm.RoomId = res.Room "
+         + "WHERE Room = '" + room + "' AND YEAR(CheckIn) = 2010 "
+         + "GROUP BY rm.RoomName;");
+         boolean f = result.next();
+         while (f) {
+            String str1 = result.getString(1);
+            System.out.println(str1);
+            f=result.next();
+         }
+      }
+      catch (Exception ee) {
+         System.out.println("ee129: " + ee);
+      }
+
+      // total revenue the room has generated in 2010
+      try {
+         Statement s = conn.createStatement();
+
+         ResultSet result = s.executeQuery("SELECT SUM(IF(YEAR(CheckOut) = 2010, DATEDIFF(CheckOut, CheckIn) * res.Rate, DATEDIFF('2010-12-31', CheckIn) * res.Rate )) AS totalNights "
+         + "FROM ProjectA_rooms rm "
+         + "INNER JOIN ProjectA_reservations res "
+         + "ON rm.RoomId = res.Room "
+         + "WHERE Room = '" + room + "' AND YEAR(CheckIn) = 2010 "
+         + "GROUP BY rm.RoomName;");
+         boolean f = result.next();
+         while (f) {
+            String str1 = result.getString(1);
+            System.out.println(str1);
+            f=result.next();
+         }
+      }
+      catch (Exception ee) {
+         System.out.println("ee129: " + ee);
+      }
+
+   // percent of the overall 2010 revenue generated by the room
+   try {
+      Statement s = conn.createStatement();
+      ResultSet result = s.executeQuery("SELECT SUM(IF(YEAR(CheckOut) = 2010, DATEDIFF(CheckOut, CheckIn) * res.Rate, DATEDIFF('2010-12-31', CheckIn) * res.Rate )) * 100 "
+      + "/ (SELECT SUM(IF(YEAR(CheckOut) = 2010, DATEDIFF(CheckOut, CheckIn) * res.Rate, DATEDIFF('2010-12-31', CheckIn) * res.Rate )) AS totalNights "
+      + "FROM ProjectA_rooms rm "
+      + "INNER JOIN ProjectA_reservations res ON rm.RoomId = res.Room WHERE YEAR(CheckIn) = 2010) "
+      + "FROM ProjectA_rooms rm "
+      + "INNER JOIN ProjectA_reservations res "
+      + "ON rm.RoomId = res.Room "
+      + "WHERE Room = '" + room + "' AND YEAR(CheckIn) = 2010 "
+      + "GROUP BY rm.RoomName;");
+      boolean f = result.next();
+      while (f) {
+         String str1 = result.getString(1);
+         System.out.println(str1);
+         f=result.next();
+      }
+   }
+   catch (Exception ee) {
+      System.out.println("ee129: " + ee);
+   }
+
+}
+
+   private static void roomReservations(String room){
+      Scanner input = new Scanner(System.in);
+
+      try {
+         Statement s = conn.createStatement();
+         ResultSet result = s.executeQuery("SELECT Code, Room, CheckIn, CheckOut "
+         + "FROM ProjectA_reservations res "
+         + "WHERE res.ROOM = '" + room + "' ORDER BY CheckIn;");
+         System.out.println("Reservations for room:\n");
+         boolean f = result.next();
+         while (f) {
+            String str1 = result.getString(1);
+            String str2 = result.getString(2);
+            String str3 = result.getString(3);
+            String str4 = result.getString(4);
+            System.out.println(str1 + ", " + str2 + ", " + str3 + ", " + str4);
+            f=result.next();
+         }
+      }
+      catch (Exception ee) {
+         System.out.println("ee129: " + ee);
+      }
+
+      // mysql query to show all info for reservation
+      System.out.println("\nSelect a reservation number to view full reservation:\n");
+      String[] resChoice = input.nextLine().toLowerCase().split(" ");
+
+      String option = resChoice[0];
+      System.out.println("option chosen: " + option);
+
+      try{
+         Integer.parseInt(option);
+      }
+      catch(NumberFormatException nfe){
+         System.out.println("Not a number... Returning");
+         return;
+      }
+
+      try {
+         Statement s = conn.createStatement();
+         ResultSet result = s.executeQuery("SELECT * "
+         + "FROM ProjectA_reservations "
+         + "WHERE Code = " + option + ";");
+         System.out.println("Full Reservation:\n");
+         boolean f = result.next();
+         while (f) {
+            String str1 = result.getString(1);
+            String str2 = result.getString(2);
+            String str3 = result.getString(3);
+            String str4 = result.getString(4);
+            String str5 = result.getString(5);
+            String str6 = result.getString(6);
+            String str7 = result.getString(7);
+            String str8 = result.getString(8);
+            String str9 = result.getString(9);
+            System.out.println(str1 + ", " + str2 + ", " + str3 + ", " + str4
+            + ", " + str5 + ", " + str6 + ", " + str7 + ", " + str8 + ", " + str9);
+            f=result.next();
+         }
+      }
+      catch (Exception ee) {
+         System.out.println("ee129: " + ee);
+      }
+   }
+
+
+
+   // OR-4: END
+
+   // CHRIS MAKING METHODS FOR OWNER LOOP: END
 
    // Program loop for guest subsystem
    private static void guestLoop() {
