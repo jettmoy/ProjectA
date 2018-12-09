@@ -163,7 +163,8 @@ public class InnReservations {
                         break;
             case 'l':   loadDB();
                         break;
-            case 'r':   System.out.println("removeDB\n");
+            case 'r':   System.out.println("\nRemoving database...\n");
+                        removeDB();
                         break;
             case 'b':   exit = true;
                         break;
@@ -656,9 +657,9 @@ public class InnReservations {
    private static void clearDb() {
        try {
           Statement s1 = conn.createStatement();
-          s1.executeUpdate("DROP TABLE ProjectA_rooms");
+          s1.executeUpdate("TRUNCATE TABLE ProjectA_rooms");
           Statement s2 = conn.createStatement();
-          s2.executeUpdate("DROP TABLE ProjectA_reservations");
+          s2.executeUpdate("TRUNCATE TABLE ProjectA_reservations");
           s1.close();
           s2.close();
        }
@@ -715,6 +716,20 @@ public class InnReservations {
        }
        catch (Exception ee) {
           System.out.println("Error creating tables: " + ee);
+       }
+   }
+
+   private static void removeDB() {
+       try {
+          Statement s1 = conn.createStatement();
+          s1.executeUpdate("DROP TABLE ProjectA_rooms");
+          Statement s2 = conn.createStatement();
+          s2.executeUpdate("DROP TABLE ProjectA_reservations");
+          s1.close();
+          s2.close();
+       }
+       catch (Exception ee) {
+          System.out.println("Error: " + ee);
        }
    }
 }
