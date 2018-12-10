@@ -4,6 +4,7 @@
 */
 
 import java.sql.*;
+import java.time.*;
 import java.util.*;
 import java.io.*;
 import java.lang.*;
@@ -1214,7 +1215,7 @@ public class InnReservations {
          char option = input.next().toLowerCase().charAt(0);
 
          switch(option) {
-            case 'r':   System.out.println("roomsAndRates\n");
+            case 'r':   roomsAndRates();
                         break;
             case 's':   System.out.println("viewStays\n");
                         break;
@@ -1731,5 +1732,76 @@ public class InnReservations {
        catch (Exception ee) {
           System.out.println("Error: " + ee);
        }
+   }
+
+   // Guest Methods
+   private static void roomsAndRates() {
+       String usage = "Usage: <checkIn> <checkOut>" + "\nDate Format: yyyy-mm-dd";
+       boolean done = false;
+       LocalDate start, end;
+       start = end = null;
+       String[] input = null;
+       displayTable("rooms", currentStatus());
+       System.out.print("Enter room code: ");
+       Scanner sc = new Scanner(System.in);
+       String room = sc.nextLine();
+        while (!done) {
+            System.out.print("Enter dates: ");
+            input = sc.nextLine().toLowerCase().split(" ");
+            for (String s : input) System.out.println(s);
+            if (input.length != 2) {
+                System.out.println(usage);
+            }
+            else {
+                try {
+                    String[] s = input[0].split("-");
+                    start.of(Integer.parseInt(s[0]), Integer.parseInt(s[1]), Integer.parseInt(s[2]));
+                    String[] s2 = input[1].split("-");
+                    start.of(Integer.parseInt(s2[0]), Integer.parseInt(s2[1]), Integer.parseInt(s2[2])) ;
+                    done = true;
+                    System.out.println(start.toString());
+                    System.out.println(end.toString());
+                } catch (Exception e) {
+                    System.out.println(usage);
+                }
+            }
+        }
+       checkAvailability(start, end);
+
+   }
+
+   private static void checkAvailability(LocalDate start, LocalDate end) {
+       System.out.println("Checking availability...");
+       System.out.println("START: " + start + "\nEND: " + end);
+       while (!start.isAfter(end)) {
+           System.out.println(start);
+           start.plusDays(1);
+       }
+       // try {
+       //    Statement s1 = conn.createStatement();
+       //    s1.executeUpdate("DROP TABLE ProjectA_rooms");
+       //    s1.close();
+       // }
+       // catch (Exception ee) {
+       //    System.out.println("Error: " + ee);
+       // }
+       //
+       //  for (int i = 0; i < dates; i++) {
+       //
+       //  }
+       //  String sql = "SELECT * Employees set age=? WHERE id=?";
+       //  stmt = conn.prepareStatement(sql);
+       //
+       //  //Bind values into the parameters.
+       //  stmt.setInt(1, 35);  // This would set age
+       //  stmt.setInt(2, 102); // This would set ID
+       //
+       //  // Let us update age of the record with ID = 102;
+       //  int rows = stmt.executeUpdate();
+       //  System.out.println("Rows impacted : " + rows );
+       //
+       //  // Let us select all the records and display them.
+       //  sql = "SELECT id, first, last, age FROM Employees";
+       //  ResultSet rs = stmt.executeQuery(sql);
    }
 }
