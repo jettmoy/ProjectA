@@ -15,7 +15,7 @@ import java.math.*;
 public class InnReservations {
 
    private static Connection conn = null;
-   private static int newCode = 1000;
+   private static Random newCode = new Random();
 
    // enter main program loop
    public static void main(String args[]) {
@@ -283,12 +283,11 @@ public class InnReservations {
          + "ORDER BY rm.RoomId;");
          System.out.println("Room availability:");
          boolean f = result.next();
-         System.out.println("Room Name\t\t\tRoom Code\tOccupancy");
          while (f) {
             String str1 = result.getString(1);
             String str2 = result.getString(2);
             String str3 = result.getString(3);
-            System.out.printf("%-31s %-15s %-20s\n", str1, str2, str3);
+            System.out.println(str1 + ", " + str2 + ", " + str3);
             f=result.next();
          }
       }
@@ -296,7 +295,7 @@ public class InnReservations {
          System.out.println("ee129: " + ee);
       }
 
-      System.out.println("\nSelect a room code to view reservation conflicts:\n");
+      System.out.println("Select a room code to view reservation conflicts:\n");
       String[] roomChoice = input.nextLine().toLowerCase().split(" ");
 
       String option = roomChoice[0].substring(0, 3);
@@ -311,7 +310,6 @@ public class InnReservations {
          + "';");
          System.out.println("Conflicting Reservation:\n");
          boolean f = result.next();
-         System.out.println("Res Code  Room Code  CheckIn\t     CheckOut        Rate  LastName        FirstName       Adults   Kids");
          while (f) {
             String str1 = result.getString(1);
             String str2 = result.getString(2);
@@ -322,7 +320,8 @@ public class InnReservations {
             String str7 = result.getString(7);
             String str8 = result.getString(8);
             String str9 = result.getString(9);
-            System.out.printf("%-9s %-10s %-15s %-15s %-5s %-15s %-15s %-8s %-4s\n\n", str1, str2, str3, str4, str5, str6, str7, str8, str9);
+            System.out.println(str1 + ", " + str2 + ", " + str3 + ", " + str4
+            + ", " + str5 + ", " + str6 + ", " + str7 + ", " + str8 + ", " + str9);
             f=result.next();
          }
       }
@@ -368,6 +367,8 @@ public class InnReservations {
          System.out.println("Improper date units... Returning to Owner menu");
          return;
       }
+
+      // Making mysql query to show OccupationStatus
       try {
          Statement s = conn.createStatement();
 
@@ -376,20 +377,16 @@ public class InnReservations {
          + "IF(SUM(CASE "
          + "WHEN (CheckIn <= '2010-" + tokens[0] + "') AND (CheckOut > '2010-" + tokens[1] + "') THEN 1 "
          + "WHEN (CheckIn <= '2010-" + tokens[0] + "' AND CheckOut <= '2010-" + tokens[1] + "' AND CheckOut > '2010-" + tokens[0]
-         + "') THEN DATEDIFF(CheckOut, '2010-" + tokens[0] + "') / DATEDIFF('2010-" + tokens[1] + "', '2010-" + tokens[0] + "') "
-         + "WHEN (CheckIn > '2010-" + tokens[0] + "' AND CheckIn < '2010-" + tokens[1] + "' AND CheckOut > '2010-" + tokens[1]
-         + "') THEN DATEDIFF('2010-" + tokens[1] + "', CheckIn) / DATEDIFF('2010-" + tokens[1] + "', '2010-" + tokens[0] + "') "
-         + "WHEN (CheckIn >= '2010-" + tokens[0] + "' AND CheckOut <= '2010-" + tokens[1] + "') THEN DATEDIFF(CheckOut, CheckIn) / DATEDIFF('2010-" + tokens[1] + "', '2010-" + tokens[0] + "') "
+         + "') OR (CheckIn > '2010-" + tokens[0] + "' AND CheckIn < '2010-" + tokens[1] + "' AND CheckOut > '2010-" + tokens[1]
+         + "') OR (CheckIn >= '2010-" + tokens[0] + "' AND CheckOut <= '2010-" + tokens[1] + "') THEN 0.01 "
          + "ELSE 0 "
          + "END) = 0, 'Empty', IF(SUM(CASE "
-         + "WHEN (CheckIn <= '2010-" + tokens[0] + "') AND (CheckOut > '2010-" + tokens[1] + "') THEN 1.1 "
+         + "WHEN (CheckIn <= '2010-" + tokens[0] + "') AND (CheckOut > '2010-" + tokens[1] + "') THEN 1 "
          + "WHEN (CheckIn <= '2010-" + tokens[0] + "' AND CheckOut <= '2010-" + tokens[1] + "' AND CheckOut > '2010-" + tokens[0]
-         + "') THEN DATEDIFF(CheckOut, '2010-" + tokens[0] + "') / DATEDIFF('2010-" + tokens[1] + "', '2010-" + tokens[0] + "') "
-         + "WHEN (CheckIn > '2010-" + tokens[0] + "' AND CheckIn < '2010-" + tokens[1] + "' AND CheckOut > '2010-" + tokens[1]
-         + "') THEN DATEDIFF('2010-" + tokens[1] + "', CheckIn) + 0.5 / DATEDIFF('2010-" + tokens[1] + "', '2010-" + tokens[0] + "') "
-         + "WHEN (CheckIn >= '2010-" + tokens[0] + "' AND CheckOut <= '2010-" + tokens[1] + "') THEN DATEDIFF(CheckOut, CheckIn) / DATEDIFF('2010-" + tokens[1] + "', '2010-" + tokens[0] + "') "
+         + "') OR (CheckIn > '2010-" + tokens[0] + "' AND CheckIn < '2010-" + tokens[1] + "' AND CheckOut > '2010-" + tokens[1]
+         + "') OR (CheckIn >= '2010-" + tokens[0] + "' AND CheckOut <= '2010-" + tokens[1] + "') THEN 0.01 "
          + "ELSE 0 "
-         + "END) > 1, 'Fully Occupied', 'Partially Occupied') ) AS OccupationStatus "
+         + "END) = 1, 'Fully Occupied', 'Partially Occupied') ) AS OccupationStatus "
          + "FROM ProjectA_rooms rm "
          + "INNER JOIN ProjectA_reservations res "
          + "ON rm.RoomId = res.Room "
@@ -397,12 +394,11 @@ public class InnReservations {
          + "ORDER BY rm.RoomId;");
          System.out.println("Room availability:");
          boolean f = result.next();
-         System.out.println("Room Name\t\t\tRoom Code\tOccupancy");
          while (f) {
             String str1 = result.getString(1);
             String str2 = result.getString(2);
             String str3 = result.getString(3);
-            System.out.printf("%-31s %-15s %-20s\n", str1, str2, str3);
+            System.out.println(str1 + ", " + str2 + ", " + str3);
             f=result.next();
          }
       }
@@ -411,12 +407,11 @@ public class InnReservations {
       }
 
       // Making mysql query to reservation conflicts
-      System.out.println("\nSelect a room code to view reservation conflicts:\n");
+      System.out.println("Select a room code to view reservation conflicts:\n");
       String[] roomChoice = input.nextLine().toLowerCase().split(" ");
 
       String option = roomChoice[0].substring(0, 3);
       System.out.println("option chosen: " + option);
-      System.out.println();
 
       try {
          Statement s = conn.createStatement();
@@ -428,14 +423,13 @@ public class InnReservations {
          + "') OR (CheckIn >= '2010-" + tokens[0] + "' AND CheckOut <= '2010-" + tokens[1] + "')))"
          + ";");
          System.out.println("Conflicting Reservations:\n");
-         System.out.println("Res Code  Room Code  CheckIn\t     CheckOut");
          boolean f = result.next();
          while (f) {
             String str1 = result.getString(1);
             String str2 = result.getString(2);
             String str3 = result.getString(3);
             String str4 = result.getString(4);
-            System.out.printf("%-9s %-10s %-15s %-15s\n\n", str1, str2, str3, str4);
+            System.out.println(str1 + ", " + str2 + ", " + str3 + ", " + str4);
             f=result.next();
          }
       }
@@ -465,7 +459,6 @@ public class InnReservations {
          + "WHERE Code = " + option + ";");
          System.out.println("Full Conflicting Reservation:\n");
          boolean f = result.next();
-         System.out.println("Res Code  Room Code  CheckIn\t     CheckOut        Rate  LastName        FirstName       Adults   Kids");
          while (f) {
             String str1 = result.getString(1);
             String str2 = result.getString(2);
@@ -476,7 +469,8 @@ public class InnReservations {
             String str7 = result.getString(7);
             String str8 = result.getString(8);
             String str9 = result.getString(9);
-            System.out.printf("%-9s %-10s %-15s %-15s %-5s %-15s %-15s %-8s %-4s\n\n", str1, str2, str3, str4, str5, str6, str7, str8, str9);
+            System.out.println(str1 + ", " + str2 + ", " + str3 + ", " + str4
+            + ", " + str5 + ", " + str6 + ", " + str7 + ", " + str8 + ", " + str9);
             f=result.next();
          }
       }
@@ -553,7 +547,6 @@ public class InnReservations {
          + "ON rm.RoomId = res.Room "
          + "GROUP BY rm.RoomName;");
          boolean f = result.next();
-         System.out.println("Room Name\t\t        Jan  Feb  Mar  Apr  May  Jun  Jul  Aug  Sep  Oct  Nov  Dec  Total");
          while (f) {
             String str1 = result.getString(1);
             String str2 = result.getString(2);
@@ -569,7 +562,9 @@ public class InnReservations {
             String str12 = result.getString(12);
             String str13 = result.getString(13);
             String str14 = result.getString(14);
-            System.out.printf("%-31s %-4s %-4s %-4s %-4s %-4s %-4s %-4s %-4s %-4s %-4s %-4s %-4s %-4s\n\n", str1, str2, str3, str4, str5, str6, str7, str8, str9, str10, str11, str12, str13, str14);
+            System.out.println(str1 + ", " + str2 + ", " + str3 + ", " + str4
+            + ", " + str5 + ", " + str6 + ", " + str7 + ", " + str8 + ", " + str9 + ", "
+            + str10 + ", " + str11 + ", " + str12 + ", " + str13 + ", " + str14);
             f=result.next();
          }
       }
@@ -599,25 +594,26 @@ public class InnReservations {
          + "ON rm.RoomId = res.Room "
          + "GROUP BY rm.RoomName;");
          boolean f = result.next();
-         System.out.println("Room Name\t\t        Jan  Feb  Mar  Apr  May  Jun  Jul  Aug  Sep  Oct  Nov  Dec  Total");
          while (f) {
-            String str1 = result.getString(1);
-            String str2 = result.getString(2);
-            String str3 = result.getString(3);
-            String str4 = result.getString(4);
-            String str5 = result.getString(5);
-            String str6 = result.getString(6);
-            String str7 = result.getString(7);
-            String str8 = result.getString(8);
-            String str9 = result.getString(9);
-            String str10 = result.getString(10);
-            String str11 = result.getString(11);
-            String str12 = result.getString(12);
-            String str13 = result.getString(13);
-            String str14 = result.getString(14);
-            System.out.printf("%-31s %-4s %-4s %-4s %-4s %-4s %-4s %-4s %-4s %-4s %-4s %-4s %-4s %-4s\n\n", str1, str2, str3, str4, str5, str6, str7, str8, str9, str10, str11, str12, str13, str14);
-            f=result.next();
-         }
+               String str1 = result.getString(1);
+               String str2 = result.getString(2);
+               String str3 = result.getString(3);
+               String str4 = result.getString(4);
+               String str5 = result.getString(5);
+               String str6 = result.getString(6);
+               String str7 = result.getString(7);
+               String str8 = result.getString(8);
+               String str9 = result.getString(9);
+               String str10 = result.getString(10);
+               String str11 = result.getString(11);
+               String str12 = result.getString(12);
+               String str13 = result.getString(13);
+               String str14 = result.getString(14);
+               System.out.println(str1 + ", " + str2 + ", " + str3 + ", " + str4
+               + ", " + str5 + ", " + str6 + ", " + str7 + ", " + str8 + ", " + str9 + ", "
+               + str10 + ", " + str11 + ", " + str12 + ", " + str13 + ", " + str14);
+               f=result.next();
+            }
       }
       catch (Exception ee) {
          System.out.println("ee129: " + ee);
@@ -645,25 +641,26 @@ public class InnReservations {
          + "ON rm.RoomId = res.Room "
          + "GROUP BY rm.RoomName;");
          boolean f = result.next();
-         System.out.println("Room Name\t\t        Jan  Feb  Mar  Apr  May  Jun  Jul  Aug  Sep  Oct  Nov  Dec  Total");
          while (f) {
-            String str1 = result.getString(1);
-            String str2 = result.getString(2);
-            String str3 = result.getString(3);
-            String str4 = result.getString(4);
-            String str5 = result.getString(5);
-            String str6 = result.getString(6);
-            String str7 = result.getString(7);
-            String str8 = result.getString(8);
-            String str9 = result.getString(9);
-            String str10 = result.getString(10);
-            String str11 = result.getString(11);
-            String str12 = result.getString(12);
-            String str13 = result.getString(13);
-            String str14 = result.getString(14);
-            System.out.printf("%-31s %-4s %-4s %-4s %-4s %-4s %-4s %-4s %-4s %-4s %-4s %-4s %-4s %-4s\n\n", str1, str2, str3, str4, str5, str6, str7, str8, str9, str10, str11, str12, str13, str14);
-            f=result.next();
-         }
+               String str1 = result.getString(1);
+               String str2 = result.getString(2);
+               String str3 = result.getString(3);
+               String str4 = result.getString(4);
+               String str5 = result.getString(5);
+               String str6 = result.getString(6);
+               String str7 = result.getString(7);
+               String str8 = result.getString(8);
+               String str9 = result.getString(9);
+               String str10 = result.getString(10);
+               String str11 = result.getString(11);
+               String str12 = result.getString(12);
+               String str13 = result.getString(13);
+               String str14 = result.getString(14);
+               System.out.println(str1 + ", " + str2 + ", " + str3 + ", " + str4
+               + ", " + str5 + ", " + str6 + ", " + str7 + ", " + str8 + ", " + str9 + ", "
+               + str10 + ", " + str11 + ", " + str12 + ", " + str13 + ", " + str14);
+               f=result.next();
+            }
       }
       catch (Exception ee) {
          System.out.println("ee129: " + ee);
@@ -750,13 +747,12 @@ public class InnReservations {
          + "WHERE CheckIn >= '2010-" + date1 + "' AND CheckIn < '2010-" + date2 + "' AND Room = '" + room + "';");
          System.out.println("Reservations based on search:\n");
          boolean f = result.next();
-         System.out.println("Res Code  Room Code  CheckIn\t     CheckOut");
          while (f) {
             String str1 = result.getString(1);
             String str2 = result.getString(2);
             String str3 = result.getString(3);
             String str4 = result.getString(4);
-            System.out.printf("%-9s %-10s %-15s %-15s\n\n", str1, str2, str3, str4);
+            System.out.println(str1 + ", " + str2 + ", " + str3 + ", " + str4);
             f=result.next();
          }
       }
@@ -786,7 +782,6 @@ public class InnReservations {
          + "WHERE Code = " + option + ";");
          System.out.println("Full Conflicting Reservation:\n");
          boolean f = result.next();
-         System.out.println("Res Code  Room Code  CheckIn\t     CheckOut        Rate  LastName        FirstName       Adults   Kids");
          while (f) {
             String str1 = result.getString(1);
             String str2 = result.getString(2);
@@ -797,7 +792,8 @@ public class InnReservations {
             String str7 = result.getString(7);
             String str8 = result.getString(8);
             String str9 = result.getString(9);
-            System.out.printf("%-9s %-10s %-15s %-15s %-5s %-15s %-15s %-8s %-4s\n\n", str1, str2, str3, str4, str5, str6, str7, str8, str9);
+            System.out.println(str1 + ", " + str2 + ", " + str3 + ", " + str4
+            + ", " + str5 + ", " + str6 + ", " + str7 + ", " + str8 + ", " + str9);
             f=result.next();
          }
       }
@@ -817,13 +813,12 @@ public class InnReservations {
          + "WHERE Room = '" + room + "';");
          System.out.println("Reservations based on search:\n");
          boolean f = result.next();
-         System.out.println("Res Code  Room Code  CheckIn\t     CheckOut");
          while (f) {
             String str1 = result.getString(1);
             String str2 = result.getString(2);
             String str3 = result.getString(3);
             String str4 = result.getString(4);
-            System.out.printf("%-9s %-10s %-15s %-15s\n\n", str1, str2, str3, str4);
+            System.out.println(str1 + ", " + str2 + ", " + str3 + ", " + str4);
             f=result.next();
          }
       }
@@ -853,7 +848,6 @@ public class InnReservations {
          + "WHERE Code = " + option + ";");
          System.out.println("Full Conflicting Reservation:\n");
          boolean f = result.next();
-         System.out.println("Res Code  Room Code  CheckIn\t     CheckOut        Rate  LastName        FirstName       Adults   Kids");
          while (f) {
             String str1 = result.getString(1);
             String str2 = result.getString(2);
@@ -864,7 +858,8 @@ public class InnReservations {
             String str7 = result.getString(7);
             String str8 = result.getString(8);
             String str9 = result.getString(9);
-            System.out.printf("%-9s %-10s %-15s %-15s %-5s %-15s %-15s %-8s %-4s\n\n", str1, str2, str3, str4, str5, str6, str7, str8, str9);
+            System.out.println(str1 + ", " + str2 + ", " + str3 + ", " + str4
+            + ", " + str5 + ", " + str6 + ", " + str7 + ", " + str8 + ", " + str9);
             f=result.next();
          }
       }
@@ -907,13 +902,12 @@ public class InnReservations {
          + "WHERE CheckIn >= '2010-" + date1 + "' AND CheckIn < '2010-" + date2 + "';");
          System.out.println("Reservations based on search:\n");
          boolean f = result.next();
-         System.out.println("Res Code  Room Code  CheckIn\t     CheckOut");
          while (f) {
             String str1 = result.getString(1);
             String str2 = result.getString(2);
             String str3 = result.getString(3);
             String str4 = result.getString(4);
-            System.out.printf("%-9s %-10s %-15s %-15s\n\n", str1, str2, str3, str4);
+            System.out.println(str1 + ", " + str2 + ", " + str3 + ", " + str4);
             f=result.next();
          }
       }
@@ -943,7 +937,6 @@ public class InnReservations {
          + "WHERE Code = " + option + ";");
          System.out.println("Full Conflicting Reservation:\n");
          boolean f = result.next();
-         System.out.println("Res Code  Room Code  CheckIn\t     CheckOut        Rate  LastName        FirstName       Adults   Kids");
          while (f) {
             String str1 = result.getString(1);
             String str2 = result.getString(2);
@@ -954,7 +947,8 @@ public class InnReservations {
             String str7 = result.getString(7);
             String str8 = result.getString(8);
             String str9 = result.getString(9);
-            System.out.printf("%-9s %-10s %-15s %-15s %-5s %-15s %-15s %-8s %-4s\n\n", str1, str2, str3, str4, str5, str6, str7, str8, str9);
+            System.out.println(str1 + ", " + str2 + ", " + str3 + ", " + str4
+            + ", " + str5 + ", " + str6 + ", " + str7 + ", " + str8 + ", " + str9);
             f=result.next();
          }
       }
@@ -981,12 +975,11 @@ public class InnReservations {
             ResultSet result = s.executeQuery("SELECT RoomId, RoomName "
             + "FROM ProjectA_rooms;");
             System.out.println("Room List:\n");
-            System.out.println("Room Code  Room Name");
             boolean f = result.next();
             while (f) {
                String str1 = result.getString(1);
                String str2 = result.getString(2);
-               System.out.printf("%-10s %-25s\n", str1, str2);
+               System.out.println(str1 + ", " + str2);
                f=result.next();
             }
             System.out.println("\n");
@@ -1016,7 +1009,7 @@ public class InnReservations {
    private static void displayRoomMenu() {
 
       // Display UI
-      System.out.println("\n\nOccupancy Menu.\n\n"
+      System.out.println("Occupancy Menu.\n\n"
          + "Choose an option (add desired room code after choice):\n"
          + "- (1) Room Info\n"
          + "- (2) Reservation Info\n"
@@ -1037,7 +1030,6 @@ public class InnReservations {
          + "WHERE Room = '" + room + "';");
          System.out.println("Room based on search:\n");
          boolean f = result.next();
-         System.out.println("Room Code  Room Name                 Beds  BedType  MaxOcc   BasePrice  Decor        NumNightsOccupied    %Occupied    TotalRevenue    %Revenue");
          while (f) {
             String str1 = result.getString(1);
             String str2 = result.getString(2);
@@ -1046,7 +1038,7 @@ public class InnReservations {
             String str5 = result.getString(5);
             String str6 = result.getString(6);
             String str7 = result.getString(7);
-            System.out.printf("%-10s %-25s %-5s %-8s %-8s %-10s %-5s", str1, str2, str3, str4, str5, str6, str7);
+            System.out.println(str1 + ", " + str2 + ", " + str3 + ", " + str4 + ", " + str5 + ", " + str6 + ", " + str7);
             f=result.next();
          }
       }
@@ -1067,7 +1059,7 @@ public class InnReservations {
          boolean f = result.next();
          while (f) {
             String str1 = result.getString(1);
-            System.out.print("  " + str1);
+            System.out.println(str1);
             f=result.next();
          }
       }
@@ -1088,7 +1080,7 @@ public class InnReservations {
          boolean f = result.next();
          while (f) {
             String str1 = result.getString(1);
-            System.out.print("                  " + str1);
+            System.out.println(str1);
             f=result.next();
          }
       }
@@ -1109,7 +1101,7 @@ public class InnReservations {
          boolean f = result.next();
          while (f) {
             String str1 = result.getString(1);
-            System.out.print("      " + str1);
+            System.out.println(str1);
             f=result.next();
          }
       }
@@ -1132,7 +1124,7 @@ public class InnReservations {
       boolean f = result.next();
       while (f) {
          String str1 = result.getString(1);
-         System.out.println("           " + str1);
+         System.out.println(str1);
          f=result.next();
       }
    }
@@ -1152,13 +1144,12 @@ public class InnReservations {
          + "WHERE res.ROOM = '" + room + "' ORDER BY CheckIn;");
          System.out.println("Reservations for room:\n");
          boolean f = result.next();
-         System.out.println("Res Code  Room Code  CheckIn\t     CheckOut");
          while (f) {
             String str1 = result.getString(1);
             String str2 = result.getString(2);
             String str3 = result.getString(3);
             String str4 = result.getString(4);
-            System.out.printf("%-9s %-10s %-15s %-15s\n\n", str1, str2, str3, str4);
+            System.out.println(str1 + ", " + str2 + ", " + str3 + ", " + str4);
             f=result.next();
          }
       }
@@ -1188,7 +1179,6 @@ public class InnReservations {
          + "WHERE Code = " + option + ";");
          System.out.println("Full Reservation:\n");
          boolean f = result.next();
-         System.out.println("Res Code  Room Code  CheckIn\t     CheckOut        Rate  LastName        FirstName       Adults   Kids");
          while (f) {
             String str1 = result.getString(1);
             String str2 = result.getString(2);
@@ -1199,7 +1189,8 @@ public class InnReservations {
             String str7 = result.getString(7);
             String str8 = result.getString(8);
             String str9 = result.getString(9);
-            System.out.printf("%-9s %-10s %-15s %-15s %-5s %-15s %-15s %-8s %-4s\n\n", str1, str2, str3, str4, str5, str6, str7, str8, str9);
+            System.out.println(str1 + ", " + str2 + ", " + str3 + ", " + str4
+            + ", " + str5 + ", " + str6 + ", " + str7 + ", " + str8 + ", " + str9);
             f=result.next();
          }
       }
@@ -1228,8 +1219,10 @@ public class InnReservations {
 
          switch(option) {
             case 'r':   displayTable("rooms", currentStatus());
+                        if (availabilityOrGoBack() == 'a')
+                            checkAvailability();
                         break;
-            case 's':   reservationsMenu();
+            case 's':   checkAvailabilityDates();
                         break;
             case 'b':   exit = true;
                         break;
@@ -1249,13 +1242,6 @@ public class InnReservations {
          + "- (S)tays - View availability for your stay\n"
          + "- (B)ack - Goes back to main menu\n");
    }
-
-   // CHRIS MAKING METHODS FOR GUEST: START
-
-
-
-   // CHRIS MAKING METHODS FOR GUEST: END
-
 
    // Clears the console screen when running interactive
    private static void clearScreen() {
@@ -1759,16 +1745,14 @@ public class InnReservations {
    }
 
    // Guest Methods
-   private static boolean checkAvailability() {
-       String usage = "Usage: <checkIn> <checkOut>" + "\nDate Format: yyyy-mm-dd";
+   // R option of Guest menu
+   // includes R-1 R-2 R-3 R-4
+   private static void checkAvailability() {
        boolean available = false, done = false;
        String[] input = null;
-       displayTable("rooms", currentStatus());
-       // System.out.print("Enter RoomId: ");
        Scanner sc = new Scanner(System.in);
-       // String room = sc.nextLine().trim();
        String room = getRoomCodeOrQ();
-       if (room.equals("q")) return false;
+       if (room.equals("q")) return;
        int rate = getRoomRate(room);
 
         System.out.print("Enter start date (MM DD YYYY): ");
@@ -1777,11 +1761,14 @@ public class InnReservations {
         LocalDate end = getDate();
 
         available = checkAvailabilityRoom(start, end, room, rate);
-        if (available)
-            System.out.println("AVAILABLE.");
-        return false;
+        if (available) {
+            System.out.println("\nYour stay is available!\n\n");
+            if (reserveOrGoBack() == 'r')
+                makeReservation(start, end);
+        }
    }
 
+   // prompts user for room code
    private static String getRoomCode() {
        Scanner input = new Scanner(System.in);
        System.out.print("Enter room code: ");
@@ -1789,6 +1776,7 @@ public class InnReservations {
        return room;
    }
 
+   // gets max occupancy for a given room
    private static int getMaxOcc(String room) {
        int maxOcc = -1;
        try {
@@ -1805,6 +1793,7 @@ public class InnReservations {
        return maxOcc;
    }
 
+   // prompts user for discount
    private static double applyDiscount() {
        double discount = 1.0;
        Scanner sc = new Scanner(System.in);
@@ -1827,6 +1816,7 @@ public class InnReservations {
        return discount;
    }
 
+   // asks user to confirm reservation
    private static boolean placeReservation() {
        Scanner sc = new Scanner(System.in);
        System.out.print("\nConfirm Reservation (y/n): ");
@@ -1834,14 +1824,16 @@ public class InnReservations {
        return c == 'y' ? true : false;
    }
 
+   // made to easily pass reservation info
    private static class Reservation {
        LocalDate start, end;
        String room, firstName, lastName;
        double discount;
-       int code, adults, kids, rate, basePrice;
+       int code, adults, kids, rate, adjusted;
 
        public String toString() {
-           return String.format("Room: %s\nDates: %s to %s\nName: %s\nPrice: %d",
+           return String.format("Code: %d\nRoom: %s\nDates: %s to %s\nName: %s\nPrice: %d",
+           this.code,
            this.room,
            this.start.getMonth() + " " + this.start.getDayOfMonth() + " " + this.start.getYear(),
            this.end.getMonth() + " " + this.end.getDayOfMonth() + " " + this.end.getYear(),
@@ -1850,17 +1842,15 @@ public class InnReservations {
        }
    }
 
+   // gathers reservation information
    private static void makeReservation(LocalDate start, LocalDate end) {
-       // System.out.print("Enter start date (MM DD YYYY): ");
-       // LocalDate start = getDate();
-       // System.out.print("Enter end date (MM DD YYYY): ");
-       // LocalDate end = getDate();
        boolean valid = false;
        Reservation reservation = new Reservation();
        reservation.start = start;
        reservation.end = end;
        reservation.room = getRoomCode();
-       reservation.basePrice = getRoomRate(reservation.room);
+       int base = getRoomRate(reservation.room);
+       reservation.adjusted = (int) Math.round(adjustRate(base, start, end));
        reservation.firstName = getFirstName();
        reservation.lastName = getLastName();
        int maxOcc = getMaxOcc(reservation.room);
@@ -1871,14 +1861,19 @@ public class InnReservations {
            System.out.println("Exceeded Maximum Occupancy.");
        }
        reservation.discount = applyDiscount();
-       reservation.rate = (int) Math.round(reservation.discount * reservation.basePrice);
-       reservation.code = ++newCode;
+       reservation.rate = (int) Math.round(reservation.discount * reservation.adjusted);
+       reservation.code = newCode();
        if (placeReservation()) {
             addReservation(reservation);
         }
    }
 
+   // generates random reservation code
+   private static int newCode() {
+       return 1 + newCode.nextInt(10000 - 1 + 1);
+   }
 
+   // handles inserting reservation into databse
    private static boolean addReservation(Reservation reservation) {
        try {
            Statement s1 = conn.createStatement();
@@ -1906,16 +1901,9 @@ public class InnReservations {
        return false;
    }
 
-   private static void reservationsMenu() {
-       // checkAvailability();
-       checkAvailabilityDates();
-       // viewRooms();
-   }
-
+   // S option of Guest menu
+   // includes R-2 R-3 R-4 R-5 capability
    private static void checkAvailabilityDates() {
-       // System.out.println("\nChecking availability...\n");
-
-       // double rate = adjustRate(basePrice, start, end);
        System.out.print("Enter start date (MM DD YYYY): ");
        LocalDate start = getDate();
        System.out.print("Enter end date (MM DD YYYY): ");
@@ -1930,10 +1918,6 @@ public class InnReservations {
                     "' OR checkOut BETWEEN '" + start.toString() + "' AND '" + end.toString() + "');";
                ResultSet rs = s1.executeQuery(query);
                System.out.println("\nAvailability for dates: " + start.getMonth() + " " + start.getDayOfMonth() + " to " + end.getMonth() + " " + end.getDayOfMonth());
-               // int count = rs.last() ? rs.getRow() : 0;
-               // int count = rs.getInt("count");
-               // System.out.println("COUNT: " + count);
-               // System.out.println("Reservations: " + !rs.next());
                if (!rs.next()) {
                    System.out.println("\n\nNo Available Rooms.");
                    return;
@@ -1957,6 +1941,7 @@ public class InnReservations {
            }
        }
 
+    // gets base rate for a given room
    private static int getRoomRate(String code) {
        int rate = -1;
        try {
@@ -1972,9 +1957,11 @@ public class InnReservations {
        return rate;
    }
 
+   // R-1 && R-2
    private static boolean checkAvailabilityRoom(LocalDate start, LocalDate end, String room, int basePrice) {
        boolean available = true;
        System.out.println("\nChecking availability...\n");
+       System.out.println("Room: " + room + "\n");
        System.out.println("Date" + "\t\t" + "Availability" + "\t" + "Rate");
        double rate = adjustRate(basePrice, start, end);
        while (!start.isAfter(end)) {
@@ -1989,7 +1976,6 @@ public class InnReservations {
                } else {
                    availability = "Vacant" + "\t\t" + rate;
                }
-               // String availability = rs.last() ? "Occupied" : "Vacant";
                System.out.println(availability);
                s1.close();
            } catch (Exception e) {
@@ -2000,9 +1986,9 @@ public class InnReservations {
        return available;
    }
 
+   // adjusts rate for weekends and special days of the year
    private static double adjustRate(int basePrice, LocalDate start, LocalDate end) {
        double rate = basePrice;
-       // System.out.println("BASE PRICE: " + rate);
        while (!start.isAfter(end)) {
            int dayOfYear = start.getDayOfYear();
            if (dayOfYear == 304 || dayOfYear == 365 || dayOfYear == 185 || dayOfYear == 249) {
@@ -2014,7 +2000,6 @@ public class InnReservations {
            }
            start = start.plusDays(1);
         }
-        // System.out.println("ADJUSTED RATE: " + rate);
         return rate;
    }
 

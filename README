@@ -1,0 +1,14 @@
+Jett Moy        Chris Creber
+jlmoy           ccreber
+
+Project A
+
+Included:
+- ServerSettings.txt (not sure if necessary but just in case, my password is very secure anyway)
+- InnReservations.java
+
+To Run:
+javac InnReservations.java
+java InnReservations
+
+Good to go!
