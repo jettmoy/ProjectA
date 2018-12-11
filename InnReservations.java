@@ -15,6 +15,7 @@ import java.math.*;
 public class InnReservations {
 
    private static Connection conn = null;
+   private static int newCode = 1000;
 
    // enter main program loop
    public static void main(String args[]) {
@@ -1209,15 +1210,17 @@ public class InnReservations {
       boolean exit = false;
       Scanner input = new Scanner(System.in);
 
+      System.out.println("Welcome, Guest.");
+
       while (!exit) {
          displayGuest();
 
          char option = input.next().toLowerCase().charAt(0);
 
          switch(option) {
-            case 'r':   roomsAndRates();
+            case 'r':   displayTable("rooms", currentStatus());
                         break;
-            case 's':   System.out.println("viewStays\n");
+            case 's':   reservationsMenu();
                         break;
             case 'b':   exit = true;
                         break;
@@ -1231,7 +1234,7 @@ public class InnReservations {
       // clearScreen();
 
       // Display UI
-      System.out.println("Welcome, Guest.\n\n"
+      System.out.println("\n\n"
          + "Choose an option:\n"
          + "- (R)ooms - View rooms and rates\n"
          + "- (S)tays - View availability for your stay\n"
@@ -1302,14 +1305,19 @@ public class InnReservations {
 
 
    // Get a date from input
-   private static String getDate() {
-      Scanner input = new Scanner(System.in);
-
-      String monthName = input.next();
-      int month = monthNum(monthName);
-      int day = input.nextInt();
-      String date = "'2010-" + month + "-" + day + "'";
-      return date;
+   private static LocalDate getDate() {
+       int[] date = new int[3]; // format [month, day, year]
+       Scanner input = new Scanner(System.in);
+       // System.out.print("Enter Date (MM-DD): ")
+       date[0] = input.nextInt();     //month
+       // int month = monthNum(monthName);
+       date[1] = input.nextInt();     // day
+       date[2] = input.nextInt();     // year
+       input.nextLine();
+       // String date = "2010-" + month + "-" + day;
+       LocalDate day = LocalDate.of(date[2], date[0], date[1]);
+       // return date;
+       return day;
    }
 
    // Convert month name to month number
@@ -1571,7 +1579,7 @@ public class InnReservations {
             }
        }
        catch (Exception ee) {
-          System.out.println("ee96: " + ee);
+          System.out.println("Error: Couldn't get database status.");
           return new Status("Error", 0, 0);
        }
 
@@ -1613,7 +1621,7 @@ public class InnReservations {
                System.out.println();
                if (stmt != null) rs.close();
            } catch (SQLException e) {
-               System.out.println("Error" + e);
+               System.out.println("Error: Unable to display table.");
            }
        }
         else if (table.equals("rooms")) {
@@ -1647,7 +1655,7 @@ public class InnReservations {
                 System.out.println();
                 if (stmt != null) rs.close();
             } catch (SQLException e) {
-                System.out.println("Error" + e);
+                System.out.println("Error: Unable to display table.");
             }
         }
         else
@@ -1735,73 +1743,263 @@ public class InnReservations {
    }
 
    // Guest Methods
-   private static void roomsAndRates() {
+   private static boolean checkAvailability() {
        String usage = "Usage: <checkIn> <checkOut>" + "\nDate Format: yyyy-mm-dd";
-       boolean done = false;
-       LocalDate start, end;
-       start = end = null;
+       boolean available = false, done = false;
        String[] input = null;
        displayTable("rooms", currentStatus());
-       System.out.print("Enter room code: ");
+       // System.out.print("Enter RoomId: ");
        Scanner sc = new Scanner(System.in);
-       String room = sc.nextLine();
-        while (!done) {
-            System.out.print("Enter dates: ");
-            input = sc.nextLine().toLowerCase().split(" ");
-            for (String s : input) System.out.println(s);
-            if (input.length != 2) {
-                System.out.println(usage);
-            }
-            else {
-                try {
-                    String[] s = input[0].split("-");
-                    start.of(Integer.parseInt(s[0]), Integer.parseInt(s[1]), Integer.parseInt(s[2]));
-                    String[] s2 = input[1].split("-");
-                    start.of(Integer.parseInt(s2[0]), Integer.parseInt(s2[1]), Integer.parseInt(s2[2])) ;
-                    done = true;
-                    System.out.println(start.toString());
-                    System.out.println(end.toString());
-                } catch (Exception e) {
-                    System.out.println(usage);
-                }
-            }
-        }
-       checkAvailability(start, end);
+       // String room = sc.nextLine().trim();
+       String room = getRoomCodeOrQ();
+       if (room.equals("q")) return false;
+       int rate = getRoomRate(room);
 
+        System.out.print("Enter start date (MM DD YYYY): ");
+        LocalDate start = getDate();
+        System.out.print("Enter end date (MM DD YYYY): ");
+        LocalDate end = getDate();
+
+        available = checkAvailabilityRoom(start, end, room, rate);
+        if (available)
+            System.out.println("AVAILABLE.");
+        return false;
    }
 
-   private static void checkAvailability(LocalDate start, LocalDate end) {
-       System.out.println("Checking availability...");
-       System.out.println("START: " + start + "\nEND: " + end);
-       while (!start.isAfter(end)) {
-           System.out.println(start);
-           start.plusDays(1);
+   private static String getRoomCode() {
+       Scanner input = new Scanner(System.in);
+       System.out.print("Enter room code: ");
+       String room = input.nextLine().trim();
+       return room;
+   }
+
+   private static int getMaxOcc(String room) {
+       int maxOcc = -1;
+       try {
+           Statement s1 = conn.createStatement();
+           String query =   "SELECT MaxOcc " +
+                            "FROM ProjectA_rooms " +
+                            "WHERE RoomId = '" + room + "';";
+            ResultSet rs = s1.executeQuery(query);
+            rs.first();
+            maxOcc = rs.getInt("MaxOcc");
+       } catch (Exception e) {
+           System.out.println("Error: " + e);
        }
-       // try {
-       //    Statement s1 = conn.createStatement();
-       //    s1.executeUpdate("DROP TABLE ProjectA_rooms");
-       //    s1.close();
-       // }
-       // catch (Exception ee) {
-       //    System.out.println("Error: " + ee);
-       // }
-       //
-       //  for (int i = 0; i < dates; i++) {
-       //
-       //  }
-       //  String sql = "SELECT * Employees set age=? WHERE id=?";
-       //  stmt = conn.prepareStatement(sql);
-       //
-       //  //Bind values into the parameters.
-       //  stmt.setInt(1, 35);  // This would set age
-       //  stmt.setInt(2, 102); // This would set ID
-       //
-       //  // Let us update age of the record with ID = 102;
-       //  int rows = stmt.executeUpdate();
-       //  System.out.println("Rows impacted : " + rows );
-       //
-       //  // Let us select all the records and display them.
-       //  sql = "SELECT id, first, last, age FROM Employees";
-       //  ResultSet rs = stmt.executeQuery(sql);
+       return maxOcc;
    }
+
+   private static double applyDiscount() {
+       double discount = 1.0;
+       Scanner sc = new Scanner(System.in);
+       System.out.print("Apply Discount (y/n): ");
+       char input = sc.nextLine().toLowerCase().charAt(0);
+       if (input == 'y') {
+           String dsName = getDiscount();
+           if (dsName.equals("AARP")) {
+               discount = 0.85;
+               System.out.println("Applied %15 discount.");
+           }
+           else if (dsName.equals("AAA")) {
+               discount = 0.9;
+               System.out.println("Applied %10 discount.");
+           }
+           else {
+               System.out.println("No discount applied.");
+           }
+       }
+       return discount;
+   }
+
+   private static boolean placeReservation() {
+       Scanner sc = new Scanner(System.in);
+       System.out.print("\nConfirm Reservation (y/n): ");
+       char c = sc.nextLine().toLowerCase().charAt(0);
+       return c == 'y' ? true : false;
+   }
+
+   private static class Reservation {
+       LocalDate start, end;
+       String room, firstName, lastName;
+       double discount;
+       int code, adults, kids, rate, basePrice;
+
+       public String toString() {
+           return String.format("Room: %s\nDates: %s to %s\nName: %s\nPrice: %d",
+           this.room,
+           this.start.getMonth() + " " + this.start.getDayOfMonth() + " " + this.start.getYear(),
+           this.end.getMonth() + " " + this.end.getDayOfMonth() + " " + this.end.getYear(),
+           this.firstName + " " + this.lastName,
+           this.rate);
+       }
+   }
+
+   private static void makeReservation(LocalDate start, LocalDate end) {
+       // System.out.print("Enter start date (MM DD YYYY): ");
+       // LocalDate start = getDate();
+       // System.out.print("Enter end date (MM DD YYYY): ");
+       // LocalDate end = getDate();
+       boolean valid = false;
+       Reservation reservation = new Reservation();
+       reservation.start = start;
+       reservation.end = end;
+       reservation.room = getRoomCode();
+       reservation.basePrice = getRoomRate(reservation.room);
+       reservation.firstName = getFirstName();
+       reservation.lastName = getLastName();
+       int maxOcc = getMaxOcc(reservation.room);
+       while (true) {
+           reservation.adults = getNumAdults();
+           reservation.kids = getNumChildren();
+           if (reservation.adults + reservation.kids <= maxOcc) break;
+           System.out.println("Exceeded Maximum Occupancy.");
+       }
+       reservation.discount = applyDiscount();
+       reservation.rate = (int) Math.round(reservation.discount * reservation.basePrice);
+       reservation.code = ++newCode;
+       if (placeReservation()) {
+            addReservation(reservation);
+        }
+   }
+
+
+   private static boolean addReservation(Reservation reservation) {
+       try {
+           Statement s1 = conn.createStatement();
+           String update = String.format(
+                "INSERT INTO ProjectA_reservations VALUES (%d, '%s', '%s', '%s', %d, %s, %s, %d, %d);",
+                    reservation.code,
+                    reservation.room,
+                    reservation.start.toString(),
+                    reservation.end.toString(),
+                    reservation.rate,
+                    reservation.lastName,
+                    reservation.firstName,
+                    reservation.adults,
+                    reservation.kids);
+            int ret = s1.executeUpdate(update);
+            if (ret != 1) {
+                System.out.println("\nUnable to place reservation.\n");
+                return false;
+            }
+            System.out.println("\nReservation: \n--------------\n" + reservation + "\n\n\nYour Reservation is Complete.");
+            return true;
+       } catch (Exception e) {
+           System.out.println("\nUnable to place reservation.\nERROR: " + e);
+       }
+       return false;
+   }
+
+   private static void reservationsMenu() {
+       // checkAvailability();
+       checkAvailabilityDates();
+       // viewRooms();
+   }
+
+   private static void checkAvailabilityDates() {
+       // System.out.println("\nChecking availability...\n");
+
+       // double rate = adjustRate(basePrice, start, end);
+       System.out.print("Enter start date (MM DD YYYY): ");
+       LocalDate start = getDate();
+       System.out.print("Enter end date (MM DD YYYY): ");
+       LocalDate end = getDate();
+           try {
+               Statement s1 = conn.createStatement();
+               String availability;
+               String query = "SELECT RoomId, RoomName, BasePrice " +
+                    "FROM ProjectA_rooms WHERE RoomId NOT IN(" +
+                    "SELECT DISTINCT Room FROM ProjectA_reservations " +
+                    "WHERE checkIn BETWEEN '" + start.toString() +  "' AND '" + end.toString() +
+                    "' OR checkOut BETWEEN '" + start.toString() + "' AND '" + end.toString() + "');";
+               ResultSet rs = s1.executeQuery(query);
+               System.out.println("\nAvailability for dates: " + start.getMonth() + " " + start.getDayOfMonth() + " to " + end.getMonth() + " " + end.getDayOfMonth());
+               // int count = rs.last() ? rs.getRow() : 0;
+               // int count = rs.getInt("count");
+               // System.out.println("COUNT: " + count);
+               // System.out.println("Reservations: " + !rs.next());
+               if (!rs.next()) {
+                   System.out.println("\n\nNo Available Rooms.");
+                   return;
+               }
+               rs.first();
+               System.out.println("\nRoomId" + "\t" + "Room Name" + "\t\t\t" + "Rate");
+               do {
+                   String room = rs.getString("RoomId");
+                   String roomName = rs.getString("RoomName");
+                   int basePrice = rs.getInt("BasePrice");
+                   double rate = adjustRate(basePrice, start, end);
+                   System.out.printf("%-3s\t%-30s\t%.2f\n", room, roomName, rate);
+               } while (rs.next());
+               System.out.println("\n");
+               s1.close();
+               char reserve = reserveOrGoBack();
+               if (reserve == 'r')
+                    makeReservation(start, end);
+           } catch (Exception e) {
+               System.out.println("Error: " + e);
+           }
+       }
+
+   private static int getRoomRate(String code) {
+       int rate = -1;
+       try {
+           Statement s = conn.createStatement();
+           String query = "SELECT BasePrice FROM ProjectA_rooms WHERE RoomId = '" + code + "';";
+           ResultSet rs = s.executeQuery(query);
+           rs.first();
+           rate = rs.getInt("BasePrice");
+       }
+       catch (Exception e) {
+           System.out.println("Error: Could not get room rate");
+       }
+       return rate;
+   }
+
+   private static boolean checkAvailabilityRoom(LocalDate start, LocalDate end, String room, int basePrice) {
+       boolean available = true;
+       System.out.println("\nChecking availability...\n");
+       System.out.println("Date" + "\t\t" + "Availability" + "\t" + "Rate");
+       double rate = adjustRate(basePrice, start, end);
+       while (!start.isAfter(end)) {
+           System.out.print(start + "\t");
+           try {
+               Statement s1 = conn.createStatement();
+               String availability, query = "SELECT 't' FROM ProjectA_reservations WHERE '" + start + "' >= checkIn AND '" + start + "' < checkOut AND Room = '" + room + "';" ;
+               ResultSet rs = s1.executeQuery(query);
+               if (rs.last()) {
+                   availability = "Occupied";
+                   available = false;
+               } else {
+                   availability = "Vacant" + "\t\t" + rate;
+               }
+               // String availability = rs.last() ? "Occupied" : "Vacant";
+               System.out.println(availability);
+               s1.close();
+           } catch (Exception e) {
+               System.out.println("Error: Could not get availability for room");
+           }
+           start = start.plusDays(1);
+       }
+       return available;
+   }
+
+   private static double adjustRate(int basePrice, LocalDate start, LocalDate end) {
+       double rate = basePrice;
+       // System.out.println("BASE PRICE: " + rate);
+       while (!start.isAfter(end)) {
+           int dayOfYear = start.getDayOfYear();
+           if (dayOfYear == 304 || dayOfYear == 365 || dayOfYear == 185 || dayOfYear == 249) {
+               rate = basePrice * 1.25;
+               break;
+           }
+           else if (start.getDayOfWeek() == DayOfWeek.FRIDAY || start.getDayOfWeek() == DayOfWeek.SATURDAY) {
+               rate = basePrice * 1.1;
+           }
+           start = start.plusDays(1);
+        }
+        // System.out.println("ADJUSTED RATE: " + rate);
+        return rate;
+   }
+
 }
